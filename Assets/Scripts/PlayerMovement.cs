@@ -8,19 +8,19 @@ public class NewBehaviourScript : MonoBehaviour
     public float Speed = 1.0f;                                      // Velocidad de movimiento
     public float RotationSpeed = 1.0f;                              // Velocidad de rotación
 
-    private Rigidbody Physics;                                      // Rigidez del objeto
+    private Rigidbody rb;                                           // Rigidez del objeto
     
     // Start is called before the first frame update
-    void Start()
+    private void Start()
     {
         Cursor.lockState = CursorLockMode.Locked;                   // Bloqueamos el cursor
         Cursor.visible = false;                                     // Ocultamos el cursor
 
-        Physics = GetComponent<Rigidbody>();                        // Obtenemos la rigidez de los objetos
+        rb = GetComponent<Rigidbody>();                             // Obtenemos la rigidez de los objetos
     }
 
     // Update is called once per frame
-    void Update()
+    private void Update()
     {
         float horizontal = Input.GetAxis("Horizontal");             // Nos devuelve 1 si pulsamos A y -1 si pulsamos D
         float vertical = Input.GetAxis("Vertical");                 // Nos devuelve 1 si pulsamos W y -1 si pulsamos S
