@@ -15,6 +15,8 @@ public class NewBehaviourScript : MonoBehaviour
     {
         Cursor.lockState = CursorLockMode.Locked;                   // Bloqueamos el cursor
         Cursor.visible = false;                                     // Ocultamos el cursor
+
+        Physics = GetComponent<Rigidbody>();                        // Obtenemos la rigidez de los objetos
     }
 
     // Update is called once per frame
