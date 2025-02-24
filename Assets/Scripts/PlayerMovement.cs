@@ -8,7 +8,7 @@ public class NewBehaviourScript : MonoBehaviour
     public float Speed = 1.0f;                                      // Velocidad de movimiento
     public float RotationSpeed = 1.0f;                              // Velocidad de rotación
 
-    private Rigidbody rb;                                           // Rigidez del objeto
+    // private Rigidbody rb;                                           // Rigidez del objeto
     
     // Start is called before the first frame update
     private void Start()
@@ -16,7 +16,7 @@ public class NewBehaviourScript : MonoBehaviour
         Cursor.lockState = CursorLockMode.Locked;                   // Bloqueamos el cursor
         Cursor.visible = false;                                     // Ocultamos el cursor
 
-        rb = GetComponent<Rigidbody>();                             // Obtenemos la rigidez de los objetos
+        //rb = GetComponent<Rigidbody>();                             // Obtenemos la rigidez de los objetos
     }
 
     // Update is called once per frame
@@ -32,4 +32,12 @@ public class NewBehaviourScript : MonoBehaviour
         float rotationY = Input.GetAxis("Mouse X");
         transform.Rotate(new Vector3(0, rotationY * Time.deltaTime * RotationSpeed, 0));
     }
+
+    // private void OnCollisionenter(Collision collision)
+    // {
+    //     if (collision.gameObject.tag == "Collectible")
+    //     {
+    //         Destroy(gameObject);
+    //     }
+    // }
 }
