@@ -1,17 +1,19 @@
 
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class Tesoro : MonoBehaviour
 {
-    void OnTriggerEnter(Collider other)
+    // Este script maneja la recogida del tesoro por parte del jugador.
+    public void OnTriggerEnter(Collider other)
     {
-        // Verificamos si el objeto que colisiona es el jugador
         if (other.CompareTag("Player"))
         {
-            Debug.Log("¡Tesoro recogido!");
-            gameObject.SetActive(false); // Hace desaparecer el tesoro
+            // Cambiar el estado del jugador para que tenga el tesoro
+            Movement playerMovement = other.GetComponent<Movement>();
+            playerMovement.SetHasTreasure(true); // El jugador ahora tiene el tesoro
+
+            // Desactivar el tesoro (o destruirlo si prefieres)
+            gameObject.SetActive(false);
         }
     }
 }
