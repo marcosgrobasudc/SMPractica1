@@ -6831,7 +6831,7 @@ GameObject:
   - component: {fileID: 562283065}
   - component: {fileID: 562283067}
   - component: {fileID: 562283066}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Camera
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -6926,6 +6926,8 @@ GameObject:
   - component: {fileID: 563800743}
   - component: {fileID: 563800742}
   - component: {fileID: 563800741}
+  - component: {fileID: 563800747}
+  - component: {fileID: 563800748}
   m_Layer: 0
   m_Name: Guard5
   m_TagString: Untagged
@@ -6972,14 +6974,9 @@ MonoBehaviour:
   - {fileID: 1687712195}
   treasureLocation: {fileID: 783891996}
   exitLocation: {fileID: 830170856}
-  sightRange: 80
-  hearingRange: 5
   chaseSpeed: 22
   patrolSpeed: 17
   lostPlayerWaitTime: 3
-  playerLayer:
-    serializedVersion: 2
-    m_Bits: 0
   gameOverCanvas: {fileID: 552789107}
   winCanvas: {fileID: 1617270891}
 --- !u!136 &563800743
@@ -7070,6 +7067,35 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &563800747
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 563800740}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 59a76e74bd3adf9419bb9c86a2f04817, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  sightRange: 100
+  playerLayer:
+    serializedVersion: 2
+    m_Bits: 8
+--- !u!114 &563800748
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 563800740}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 974e0b017d5bdb34091c31d09a1b5144, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  hearingRange: 50
 --- !u!1 &574261128
 GameObject:
   m_ObjectHideFlags: 0
@@ -7283,6 +7309,8 @@ GameObject:
   - component: {fileID: 604921642}
   - component: {fileID: 604921641}
   - component: {fileID: 604921640}
+  - component: {fileID: 604921646}
+  - component: {fileID: 604921647}
   m_Layer: 0
   m_Name: Guard4
   m_TagString: Untagged
@@ -7330,14 +7358,9 @@ MonoBehaviour:
   - {fileID: 973992513}
   treasureLocation: {fileID: 783891996}
   exitLocation: {fileID: 830170856}
-  sightRange: 80
-  hearingRange: 5
   chaseSpeed: 22
   patrolSpeed: 17
   lostPlayerWaitTime: 3
-  playerLayer:
-    serializedVersion: 2
-    m_Bits: 0
   gameOverCanvas: {fileID: 552789107}
   winCanvas: {fileID: 1617270891}
 --- !u!136 &604921642
@@ -7428,6 +7451,35 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &604921646
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 604921639}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 59a76e74bd3adf9419bb9c86a2f04817, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  sightRange: 100
+  playerLayer:
+    serializedVersion: 2
+    m_Bits: 8
+--- !u!114 &604921647
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 604921639}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 974e0b017d5bdb34091c31d09a1b5144, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  hearingRange: 50
 --- !u!1001 &605241413
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -13113,7 +13165,7 @@ GameObject:
   - component: {fileID: 1179344940}
   - component: {fileID: 1179344939}
   - component: {fileID: 1179344941}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Player
   m_TagString: Player
   m_Icon: {fileID: 0}
@@ -14722,6 +14774,8 @@ GameObject:
   - component: {fileID: 1358618513}
   - component: {fileID: 1358618512}
   - component: {fileID: 1358618511}
+  - component: {fileID: 1358618517}
+  - component: {fileID: 1358618518}
   m_Layer: 0
   m_Name: Guard2
   m_TagString: Untagged
@@ -14768,14 +14822,9 @@ MonoBehaviour:
   - {fileID: 1889602651}
   treasureLocation: {fileID: 783891996}
   exitLocation: {fileID: 830170856}
-  sightRange: 80
-  hearingRange: 5
   chaseSpeed: 22
   patrolSpeed: 17
   lostPlayerWaitTime: 3
-  playerLayer:
-    serializedVersion: 2
-    m_Bits: 0
   gameOverCanvas: {fileID: 552789107}
   winCanvas: {fileID: 1617270891}
 --- !u!136 &1358618513
@@ -14866,6 +14915,35 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1358618517
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1358618510}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 59a76e74bd3adf9419bb9c86a2f04817, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  sightRange: 100
+  playerLayer:
+    serializedVersion: 2
+    m_Bits: 8
+--- !u!114 &1358618518
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1358618510}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 974e0b017d5bdb34091c31d09a1b5144, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  hearingRange: 50
 --- !u!4 &1359834384 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 411612, guid: 0759e5b8616fa854dbb807a3ac19ec2b, type: 3}
@@ -16432,6 +16510,8 @@ GameObject:
   - component: {fileID: 1600063970}
   - component: {fileID: 1600063969}
   - component: {fileID: 1600063968}
+  - component: {fileID: 1600063974}
+  - component: {fileID: 1600063975}
   m_Layer: 0
   m_Name: Guard3
   m_TagString: Untagged
@@ -16478,14 +16558,9 @@ MonoBehaviour:
   - {fileID: 274785505}
   treasureLocation: {fileID: 783891996}
   exitLocation: {fileID: 830170856}
-  sightRange: 80
-  hearingRange: 5
   chaseSpeed: 22
   patrolSpeed: 17
   lostPlayerWaitTime: 3
-  playerLayer:
-    serializedVersion: 2
-    m_Bits: 0
   gameOverCanvas: {fileID: 552789107}
   winCanvas: {fileID: 1617270891}
 --- !u!136 &1600063970
@@ -16576,6 +16651,35 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1600063974
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1600063967}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 59a76e74bd3adf9419bb9c86a2f04817, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  sightRange: 100
+  playerLayer:
+    serializedVersion: 2
+    m_Bits: 8
+--- !u!114 &1600063975
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1600063967}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 974e0b017d5bdb34091c31d09a1b5144, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  hearingRange: 50
 --- !u!4 &1605548592 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 452560, guid: 7e2e8028213a4834fa8f2991bdefe708, type: 3}
@@ -19970,6 +20074,8 @@ GameObject:
   - component: {fileID: 1965593993}
   - component: {fileID: 1965593992}
   - component: {fileID: 1965593997}
+  - component: {fileID: 1965593998}
+  - component: {fileID: 1965593999}
   m_Layer: 0
   m_Name: Guard1
   m_TagString: Untagged
@@ -19994,14 +20100,9 @@ MonoBehaviour:
   - {fileID: 1168806376}
   treasureLocation: {fileID: 783891996}
   exitLocation: {fileID: 830170856}
-  sightRange: 80
-  hearingRange: 5
   chaseSpeed: 22
   patrolSpeed: 17
   lostPlayerWaitTime: 3
-  playerLayer:
-    serializedVersion: 2
-    m_Bits: 0
   gameOverCanvas: {fileID: 552789107}
   winCanvas: {fileID: 1617270891}
 --- !u!136 &1965593993
@@ -20114,6 +20215,35 @@ NavMeshAgent:
   m_BaseOffset: 0.99999994
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
+--- !u!114 &1965593998
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1965593991}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 59a76e74bd3adf9419bb9c86a2f04817, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  sightRange: 100
+  playerLayer:
+    serializedVersion: 2
+    m_Bits: 8
+--- !u!114 &1965593999
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1965593991}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 974e0b017d5bdb34091c31d09a1b5144, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  hearingRange: 5
 --- !u!1001 &1968693574
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -1,5 +1,4 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -8,12 +7,9 @@ public class GuardScript : MonoBehaviour
     public Transform[] patrolPoints;
     public Transform treasureLocation;
     public Transform exitLocation;
-    public float sightRange = 10f;
-    public float hearingRange = 5f;
     public float chaseSpeed = 6f;
     public float patrolSpeed = 3f;
     public float lostPlayerWaitTime = 3f; // Tiempo que espera en la última posición conocida
-    public LayerMask playerLayer;
 
     public GameObject gameOverCanvas; // Referencia al Canvas de Game Over
     public GameObject winCanvas;      // Referencia al Canvas de Win
@@ -28,20 +24,49 @@ public class GuardScript : MonoBehaviour
     private bool sawPlayerWithTreasure = false; // Se activa si el guardia ve al jugador con el tesoro
     private bool checkingTreasure = false; // Para saber si el guardia está verificando la ubicación del tesoro
 
+    private VisionSensor visionSensor;
+    private HearingSensor hearingSensor;
+
     void Start()
     {
         agent = GetComponent<NavMeshAgent>();
-        player = GameObject.FindGameObjectWithTag("Player").transform;
+
+        // Buscar al jugador por tag
+        GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
+        if (playerObject != null)
+        {
+            player = playerObject.transform;
+        }
+        else
+        {
+            Debug.LogError("No se encontró un objeto con el tag 'Player'. Asegúrate de que el jugador tenga el tag correcto.");
+        }
+
+        // Obtener los componentes de los sensores
+        visionSensor = GetComponent<VisionSensor>();
+        hearingSensor = GetComponent<HearingSensor>();
+
+        if (visionSensor == null || hearingSensor == null)
+        {
+            Debug.LogError("Falta el componente VisionSensor o HearingSensor en el guardia.");
+        }
+
         GoToNextPatrolPoint();
-        
+
         // Asegurarse de que el Canvas de Game Over y Win estén desactivados al inicio
-        gameOverCanvas.SetActive(false);
-        winCanvas.SetActive(false);
+        if (gameOverCanvas != null) gameOverCanvas.SetActive(false);
+        if (winCanvas != null) winCanvas.SetActive(false);
     }
 
     void Update()
     {
-        if (CanSeePlayer() || CanHearPlayer())
+        if (player == null || visionSensor == null || hearingSensor == null)
+        {
+            Debug.LogError("Falta una referencia crítica: player, visionSensor o hearingSensor.");
+            return; // Detener la ejecución si falta alguna referencia
+        }
+
+        if (visionSensor.CanSeePlayer() || hearingSensor.CanHearPlayer())
         {
             chasingPlayer = true;
             searchingLastPosition = false;
@@ -52,7 +77,7 @@ public class GuardScript : MonoBehaviour
 
             // Verificar si el jugador tiene el tesoro
             Movement playerMovement = player.GetComponent<Movement>();
-            if (playerMovement.hasTreasure)
+            if (playerMovement != null && playerMovement.hasTreasure)
             {
                 sawPlayerWithTreasure = true;  // El guardia ha visto al jugador con el tesoro
             }
@@ -93,28 +118,6 @@ public class GuardScript : MonoBehaviour
 
         agent.SetDestination(patrolPoints[currentPatrolIndex].position);
         currentPatrolIndex = (currentPatrolIndex + 1) % patrolPoints.Length;
-    }
-
-    bool CanSeePlayer()
-    {
-        Vector3 directionToPlayer = player.position - transform.position;
-        if (directionToPlayer.magnitude < sightRange)
-        {
-            RaycastHit hit;
-            if (Physics.Raycast(transform.position, directionToPlayer.normalized, out hit, sightRange))
-            {
-                if (hit.collider.CompareTag("Player"))
-                {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    bool CanHearPlayer()
-    {
-        return Vector3.Distance(transform.position, player.position) < hearingRange;
     }
 
     IEnumerator SearchLastKnownPosition()
@@ -209,8 +212,3 @@ public class GuardScript : MonoBehaviour
         }
     }
 }
-
-
-
-
-
