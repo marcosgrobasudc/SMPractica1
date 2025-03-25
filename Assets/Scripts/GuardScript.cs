@@ -17,7 +17,6 @@ public class GuardScript : MonoBehaviour
     private NavMeshAgent agent;
     private int currentPatrolIndex = 0;
     private Transform player;
-    private bool playerHasTreasure = false;
     private bool chasingPlayer = false;
     private Vector3 lastKnownPlayerPosition;
     private bool searchingLastPosition = false;

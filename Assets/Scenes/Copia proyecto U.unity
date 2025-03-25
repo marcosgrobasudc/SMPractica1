@@ -7079,7 +7079,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 59a76e74bd3adf9419bb9c86a2f04817, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  sightRange: 100
+  sightRange: 80
   playerLayer:
     serializedVersion: 2
     m_Bits: 8
@@ -7095,7 +7095,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 974e0b017d5bdb34091c31d09a1b5144, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  hearingRange: 50
+  hearingRadius: 70
 --- !u!1 &574261128
 GameObject:
   m_ObjectHideFlags: 0
@@ -7463,7 +7463,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 59a76e74bd3adf9419bb9c86a2f04817, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  sightRange: 100
+  sightRange: 80
   playerLayer:
     serializedVersion: 2
     m_Bits: 8
@@ -7479,7 +7479,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 974e0b017d5bdb34091c31d09a1b5144, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  hearingRange: 50
+  hearingRadius: 70
 --- !u!1001 &605241413
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -13163,8 +13163,9 @@ GameObject:
   - component: {fileID: 1179344935}
   - component: {fileID: 1179344934}
   - component: {fileID: 1179344940}
-  - component: {fileID: 1179344939}
   - component: {fileID: 1179344941}
+  - component: {fileID: 1179344939}
+  - component: {fileID: 1179344942}
   m_Layer: 3
   m_Name: Player
   m_TagString: Player
@@ -13354,6 +13355,23 @@ NavMeshAgent:
   m_BaseOffset: 0.99999994
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
+--- !u!114 &1179344942
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1179344932}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3a9725d2ac1646642837fd56814aec1b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  soundRadius: 10
+  soundDuration: 2
+  isPlayer: 1
+  jumpSoundRadius: 20
+  landingSoundRadius: 10
 --- !u!1001 &1192977382
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -14927,7 +14945,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 59a76e74bd3adf9419bb9c86a2f04817, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  sightRange: 100
+  sightRange: 80
   playerLayer:
     serializedVersion: 2
     m_Bits: 8
@@ -14943,7 +14961,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 974e0b017d5bdb34091c31d09a1b5144, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  hearingRange: 50
+  hearingRadius: 70
 --- !u!4 &1359834384 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 411612, guid: 0759e5b8616fa854dbb807a3ac19ec2b, type: 3}
@@ -16663,7 +16681,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 59a76e74bd3adf9419bb9c86a2f04817, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  sightRange: 100
+  sightRange: 80
   playerLayer:
     serializedVersion: 2
     m_Bits: 8
@@ -16679,7 +16697,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 974e0b017d5bdb34091c31d09a1b5144, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  hearingRange: 50
+  hearingRadius: 70
 --- !u!4 &1605548592 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 452560, guid: 7e2e8028213a4834fa8f2991bdefe708, type: 3}
@@ -20227,7 +20245,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 59a76e74bd3adf9419bb9c86a2f04817, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  sightRange: 100
+  sightRange: 80
   playerLayer:
     serializedVersion: 2
     m_Bits: 8
@@ -20243,7 +20261,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 974e0b017d5bdb34091c31d09a1b5144, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  hearingRange: 5
+  hearingRadius: 70
 --- !u!1001 &1968693574
 PrefabInstance:
   m_ObjectHideFlags: 0

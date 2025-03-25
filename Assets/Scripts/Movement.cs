@@ -12,6 +12,7 @@ public class Movement : MonoBehaviour
     private float gravity = -9.81f;
     private Vector3 velocity;
     private bool isGrounded;
+    private bool wasGroundedLastFrame;
 
     public bool hasTreasure = false;  // Variable para saber si el jugador tiene el tesoro
 
@@ -19,6 +20,11 @@ public class Movement : MonoBehaviour
     {
         Cursor.lockState = CursorLockMode.Locked;                   // Bloqueamos el cursor
         Cursor.visible = false;                                     // Ocultamos el cursor
+
+        SoundEmitter soundEmitter = gameObject.GetComponent<SoundEmitter>();
+        soundEmitter.soundRadius = 4f;
+        soundEmitter.soundDuration = 1f;
+        soundEmitter.isPlayer = true;
     }
 
     void Update()
@@ -34,7 +40,9 @@ public class Movement : MonoBehaviour
         transform.Rotate(Vector3.up * mouseX);
 
         // Aplicamos gravedad
+        wasGroundedLastFrame = isGrounded;
         isGrounded = controller.isGrounded;
+
         if (isGrounded && velocity.y < 0)
         {
             velocity.y = -2f;
@@ -53,5 +61,16 @@ public class Movement : MonoBehaviour
     public void SetHasTreasure(bool treasure)
     {
         hasTreasure = treasure;
+    }
+
+    // Método para verificar si está en el suelo
+    public bool IsGrounded()
+    {
+        return isGrounded;
+    }
+
+    public bool WasGroundedLastFrame()
+    {
+        return wasGroundedLastFrame;
     }
 }
