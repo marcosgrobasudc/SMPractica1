@@ -26,6 +26,11 @@ public class GuardScript : MonoBehaviour
     private VisionSensor visionSensor;
     private HearingSensor hearingSensor;
 
+    private float communicationRange = 20f; // Rango de comunicación entre guardias
+    private float lastCommunicationTime = 0f; // Último tiempo de comunicación
+    private float communicationCooldown = 2f; // evitamos spam de mensajes
+    private List<ACLMessage> mailbox = new List<ACLMessage>();
+
     void Start()
     {
         agent = GetComponent<NavMeshAgent>();
@@ -79,6 +84,12 @@ public class GuardScript : MonoBehaviour
             if (playerMovement != null && playerMovement.hasTreasure)
             {
                 sawPlayerWithTreasure = true;  // El guardia ha visto al jugador con el tesoro
+            }
+
+            // Notificamos a otros guardias
+            if (visionSensor.CanSeePlayer())
+            {
+                InformGuardsAboutPlayer(player.position);
             }
         }
         else if (chasingPlayer)
@@ -210,4 +221,88 @@ public class GuardScript : MonoBehaviour
             }
         }
     }
+
+    private void InformGuardsAboutPlayer(Vector3 playerPosition) {
+
+        if (Time.time - lastCommunicationTime < communicationCooldown) return;
+
+        GameObject[] guards = GameObject.FindGameObjectsWithTag("Guard");
+
+        foreach (var guard in guards) 
+        {
+            if (guard != this.gameObject) 
+            {
+
+                float distance = Vector3.Distance(transform.position, guard.transform.position);
+
+                if (distance <= comunicationRange) 
+                {
+
+                    SendMessage(
+                        guard,
+                        "inform",
+                        $"player_detected: {playerPosition.x},{playerPosition.y},{playerPosition.z}",
+                        "flipa-inform"
+                    );
+                }
+            }
+        }
+
+        lastCommunicationTime = Time.time;
+    }
+
+    public void SendACLMessage(GameObject receiver, string performative, string content, string protocol)
+    {
+
+        ACLMessage message = new ACLMessage(
+            performative,
+            this.gameObject,
+            receiver,
+            content,
+            protocol,
+            "guard_communication"
+        );
+        receiver.GetComponent<GuardScript>().ReceiveACLMessage(message);
+    }
+
+    public void ReceiveACLMessage(ACLMessage message)
+    {
+        mailbox.Add(message);
+        ProcessACLMessage(message);
+    }
+
+    private void ProcessACLMessage(ACLMessage message)
+    {
+        switch (message.Performative)
+        {
+            case "inform":
+
+                if (message.Content.StartsWith("player_detected:"))
+                {
+                    string[] parts = message.Content.Split(":");
+                    string[] coords = parts[1].Split(",");
+
+                    vector3 reportedPosition = new vector3
+                    (
+                        float.Parse(coords[0]),
+                        float.Parse(coords[1]),
+                        float.Parse(coords[2])
+                    );
+
+                    if(!chasingPlayer)
+                    {
+                        chasingPlayer = true;
+                        searchingLastPosition = false;
+                        checkingTreasure = false;
+                        lastKnownPlayerPosition = reportedPosition;
+                        agent.speed = chaseSpeed;
+                        agent.SetDestination(reportedPosition);
+                        Debug.Log($"{name} recibió alerta: jugador en {reportedPositiom}");
+                    }
+                }
+                break;
+        }
+    }
+
+    
 }
