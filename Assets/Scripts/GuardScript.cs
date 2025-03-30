@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -226,6 +227,8 @@ public class GuardScript : MonoBehaviour
 
         if (Time.time - lastCommunicationTime < communicationCooldown) return;
 
+        Debug.Log($"[COMUNICACIÓN] {name} está enviando INFORM sobre jugador en posición: {playerPosition}");
+
         GameObject[] guards = GameObject.FindGameObjectsWithTag("Guard");
 
         foreach (var guard in guards) 
@@ -235,10 +238,12 @@ public class GuardScript : MonoBehaviour
 
                 float distance = Vector3.Distance(transform.position, guard.transform.position);
 
-                if (distance <= comunicationRange) 
+                if (distance <= communicationRange) 
                 {
 
-                    SendMessage(
+                    Debug.Log($"[COMUNICACIÓN] Enviando a {guard.name} (Distancia: {distance}m)");
+
+                    SendACLMessage(
                         guard,
                         "inform",
                         $"player_detected: {playerPosition.x},{playerPosition.y},{playerPosition.z}",
@@ -282,12 +287,14 @@ public class GuardScript : MonoBehaviour
                     string[] parts = message.Content.Split(":");
                     string[] coords = parts[1].Split(",");
 
-                    vector3 reportedPosition = new vector3
+                    Vector3 reportedPosition = new Vector3
                     (
                         float.Parse(coords[0]),
                         float.Parse(coords[1]),
                         float.Parse(coords[2])
                     );
+
+                    Debug.Log($"[COMUNICACIÓN] {name} recibió INFORM de {message.Sender.name}. Posición reportada: {reportedPosition}");
 
                     if(!chasingPlayer)
                     {
@@ -297,7 +304,7 @@ public class GuardScript : MonoBehaviour
                         lastKnownPlayerPosition = reportedPosition;
                         agent.speed = chaseSpeed;
                         agent.SetDestination(reportedPosition);
-                        Debug.Log($"{name} recibió alerta: jugador en {reportedPositiom}");
+                        Debug.Log($"{name} recibió alerta: jugador en {reportedPosition}");
                     }
                 }
                 break;
