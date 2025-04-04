@@ -270,6 +270,7 @@ public class GuardScript : MonoBehaviour
         receiver.GetComponent<GuardScript>().ReceiveACLMessage(message);
     }
 
+    // Crear una cola para mensajes, quitar rango (mandarselo a todo los guardias), y que la conversacion no sea en un frame
     public void ReceiveACLMessage(ACLMessage message)
     {
         mailbox.Add(message);
@@ -309,7 +310,5 @@ public class GuardScript : MonoBehaviour
                 }
                 break;
         }
-    }
-
-    
+    }    
 }
