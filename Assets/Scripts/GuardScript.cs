@@ -15,48 +15,41 @@ public class GuardScript : MonoBehaviour
     public GameObject gameOverCanvas; // Referencia al Canvas de Game Over
     public GameObject winCanvas;      // Referencia al Canvas de Win
 
-    private NavMeshAgent agent;
+     private NavMeshAgent agent;
     private int currentPatrolIndex = 0;
     private Transform player;
     private bool chasingPlayer = false;
     private Vector3 lastKnownPlayerPosition;
     private bool searchingLastPosition = false;
-    private bool sawPlayerWithTreasure = false; // Se activa si el guardia ve al jugador con el tesoro
-    private bool checkingTreasure = false; // Para saber si el guardia está verificando la ubicación del tesoro
+    private bool checkingTreasure = false;
 
     private VisionSensor visionSensor;
     private HearingSensor hearingSensor;
-
-    private float communicationRange = 20f; // Rango de comunicación entre guardias
-    private float lastCommunicationTime = 0f; // Último tiempo de comunicación
-    private float communicationCooldown = 2f; // evitamos spam de mensajes
+    
     private List<ACLMessage> mailbox = new List<ACLMessage>();
-
+    
+    private string role = "patrol";
+    
     void Start()
     {
         agent = GetComponent<NavMeshAgent>();
-
-        // Buscar al jugador por tag
+        
         GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
         if (playerObject != null)
         {
             player = playerObject.transform;
         }
-        else
-        {
-            Debug.LogError("No se encontró un objeto con el tag 'Player'. Asegúrate de que el jugador tenga el tag correcto.");
-        }
-
-        // Obtener los componentes de los sensores
+        
         visionSensor = GetComponent<VisionSensor>();
         hearingSensor = GetComponent<HearingSensor>();
-
-        if (visionSensor == null || hearingSensor == null)
+        
+        if (GuardCoordinator.Instance != null)
         {
-            Debug.LogError("Falta el componente VisionSensor o HearingSensor en el guardia.");
+            GuardCoordinator.Instance.RegisterGuard(this);
         }
-
+        
         GoToNextPatrolPoint();
+
 
         // Asegurarse de que el Canvas de Game Over y Win estén desactivados al inicio
         if (gameOverCanvas != null) gameOverCanvas.SetActive(false);
@@ -71,47 +64,68 @@ public class GuardScript : MonoBehaviour
             return; // Detener la ejecución si falta alguna referencia
         }
 
+        // **1. Prioridad: Comprobar si el guardia ve o escucha al jugador**
+        if (visionSensor.CanSeePlayer() || hearingSensor.CanHearPlayer())
+        {
+            // Cambiar a rol "chase" inmediatamente si detecta al jugador
+            role = "chase";
+        }
+
+        // **2. Si no se está persiguiendo al jugador, proceder con otros roles**
+        else
+        {
+            switch (role)
+            {
+                case "chase":
+                    Chase();
+                    break;
+
+                case "patrol":
+                    Patrol();
+                    break;
+
+                case "treasure":
+                    CheckTreasure();
+                    break;
+
+                case "exit":
+                    GoToExit();
+                    break;
+
+                default:
+                    Debug.LogWarning($"Rol desconocido: {role}");
+                    break;
+            }
+        }
+    }
+
+
+    void Chase()
+    {
+        // Si el guardia está persiguiendo al jugador
         if (visionSensor.CanSeePlayer() || hearingSensor.CanHearPlayer())
         {
             chasingPlayer = true;
-            searchingLastPosition = false;
-            checkingTreasure = false;
-            lastKnownPlayerPosition = player.position;
-            agent.speed = chaseSpeed;
-            agent.SetDestination(player.position);
+            lastKnownPlayerPosition = player.position; // Actualizar la posición conocida del jugador
+            agent.speed = chaseSpeed; // Establecer la velocidad de persecución
+            agent.SetDestination(player.position); // Establecer la posición del jugador como destino
 
             // Verificar si el jugador tiene el tesoro
             Movement playerMovement = player.GetComponent<Movement>();
             if (playerMovement != null && playerMovement.hasTreasure)
             {
-                sawPlayerWithTreasure = true;  // El guardia ha visto al jugador con el tesoro
-            }
-
-            // Notificamos a otros guardias
-            if (visionSensor.CanSeePlayer())
-            {
+                // El guardia ha visto al jugador con el tesoro, informar a otros guardias
                 InformGuardsAboutPlayer(player.position);
             }
         }
-        else if (chasingPlayer)
+        else if (agent.remainingDistance < 1f)
         {
-            if (agent.remainingDistance < 1f)
-            {
-                chasingPlayer = false;
-                StartCoroutine(SearchLastKnownPosition());
-            }
-        }
-        else if (!searchingLastPosition && !checkingTreasure)
-        {
-            Patrol();
-        }
-
-        // Verificar si el guardia ha llegado a la ubicación del tesoro
-        if (checkingTreasure && agent.remainingDistance < 1f)
-        {
-            CheckTreasureStatus();
+            // Si el guardia ya no está cerca del jugador, iniciar búsqueda de la última posición conocida
+            chasingPlayer = false;
+            StartCoroutine(SearchLastKnownPosition());
         }
     }
+
 
     void Patrol()
     {
@@ -155,22 +169,43 @@ public class GuardScript : MonoBehaviour
         searchingLastPosition = false;
     }
 
-    void CheckTreasureStatus()
+    void GoToExit()
     {
-        checkingTreasure = false; // Ya no está revisando el tesoro
+        // Establecer la velocidad para ir a la salida (puede ser la misma que la de patrullaje o diferente)
+        agent.speed = patrolSpeed;
 
-        // Si el tesoro no está en su ubicación, el guardia decide ir a la salida
-        Movement playerMovement = player.GetComponent<Movement>();
-        if (playerMovement.hasTreasure)
+        // Moverse a la ubicación de salida
+        agent.SetDestination(exitLocation.position);
+
+        // Si el guardia llega a la salida, podemos poner más lógica aquí si lo necesitas
+        if (agent.remainingDistance < 1f)
         {
-            Debug.Log("El guardia revisó el tesoro y ya no está. Ahora va a la salida.");
-            agent.SetDestination(exitLocation.position);
+            Debug.Log("El guardia ha llegado a la salida.");
         }
-        else
+    }
+
+
+    void CheckTreasure()
+    {
+        // Si el guardia ha llegado a la ubicación del tesoro
+        if (agent.remainingDistance < 1f)
         {
-            // Si el tesoro sigue ahí, el guardia vuelve a patrullar
-            Debug.Log("El guardia revisó el tesoro y sigue ahí. Retomando patrulla.");
-            Patrol();
+            checkingTreasure = false; // Dejar de revisar el tesoro
+
+            // Verificar si el tesoro sigue allí
+            Movement playerMovement = player.GetComponent<Movement>();
+            if (playerMovement != null && playerMovement.hasTreasure)
+            {
+                // El tesoro ha sido robado, el guardia va a la salida
+                Debug.Log("El guardia revisó el tesoro y no está allí. Va a la salida.");
+                agent.SetDestination(exitLocation.position);
+            }
+            else
+            {
+                // El tesoro sigue en su lugar, retomar patrullaje
+                Debug.Log("El guardia revisó el tesoro y sigue ahí. Retomando patrullaje.");
+                Patrol();
+            }
         }
     }
 
@@ -223,93 +258,71 @@ public class GuardScript : MonoBehaviour
         }
     }
 
-    private void InformGuardsAboutPlayer(Vector3 playerPosition) {
-
-        if (Time.time - lastCommunicationTime < communicationCooldown) return;
-
-        Debug.Log($"[COMUNICACIÓN] {name} está enviando INFORM sobre jugador en posición: {playerPosition}");
-
-        GameObject[] guards = GameObject.FindGameObjectsWithTag("Guard");
-
-        foreach (var guard in guards) 
-        {
-            if (guard != this.gameObject) 
-            {
-
-                float distance = Vector3.Distance(transform.position, guard.transform.position);
-
-                if (distance <= communicationRange) 
-                {
-
-                    Debug.Log($"[COMUNICACIÓN] Enviando a {guard.name} (Distancia: {distance}m)");
-
-                    SendACLMessage(
-                        guard,
-                        "inform",
-                        $"player_detected: {playerPosition.x},{playerPosition.y},{playerPosition.z}",
-                        "flipa-inform"
-                    );
-                }
-            }
-        }
-
-        lastCommunicationTime = Time.time;
-    }
-
-    public void SendACLMessage(GameObject receiver, string performative, string content, string protocol)
-    {
-
-        ACLMessage message = new ACLMessage(
-            performative,
-            this.gameObject,
-            receiver,
-            content,
-            protocol,
-            "guard_communication"
-        );
-        receiver.GetComponent<GuardScript>().ReceiveACLMessage(message);
-    }
-
     public void ReceiveACLMessage(ACLMessage message)
     {
         mailbox.Add(message);
-        ProcessACLMessage(message);
+    }
+    
+    private void ProcessMailbox()
+    {
+        foreach (ACLMessage message in mailbox)
+        {
+            if (message.Performative == "inform")
+            {
+                // Extraer la posición del contenido (Content) del mensaje
+                string[] positionData = message.Content.Split(',');
+                if (positionData.Length == 3)
+                {
+                    float x = float.Parse(positionData[0]);
+                    float y = float.Parse(positionData[1]);
+                    float z = float.Parse(positionData[2]);
+
+                    Vector3 playerPosition = new Vector3(x, y, z);
+
+                    // Ahora puedes usar la posición del jugador como desees, por ejemplo, para seguirlo
+                    Debug.Log($"Recibí la posición del jugador: {playerPosition}");
+                }
+            }
+            else if (message.Performative == "call_for_bids")
+            {
+                string[] positionData = message.Content.Split(',');
+                if (positionData.Length == 3)
+                {
+                    float x = float.Parse(positionData[0]);
+                    float y = float.Parse(positionData[1]);
+                    float z = float.Parse(positionData[2]);
+
+                    Vector3 playerPosition = new Vector3(x, y, z);
+                    
+                    // Ahora puedes calcular la distancia a la posición del jugador
+                    float distance = Vector3.Distance(transform.position, playerPosition);
+
+                    SendACLMessage(message.Sender, "bid", distance.ToString(), "auction_protocol");
+                }            
+            }
+            else if (message.Performative == "assign_role")
+            {
+                role = message.Content;
+            }
+        }
+        mailbox.Clear();
+    }
+    
+    public void SendACLMessage(GameObject receiver, string performative, string content, string protocol)
+    {
+        ACLMessage message = new ACLMessage(performative, this.gameObject, receiver, content, protocol, "guard_communication");
+        receiver.GetComponent<GuardScript>().ReceiveACLMessage(message);
     }
 
-    private void ProcessACLMessage(ACLMessage message)
+    void InformGuardsAboutPlayer(Vector3 playerPosition)
     {
-        switch (message.Performative)
+        // Enviar información solo a los guardias en modo "chase"
+        foreach (GuardScript otherGuard in GuardCoordinator.Instance.Guards)
         {
-            case "inform":
-
-                if (message.Content.StartsWith("player_detected:"))
-                {
-                    string[] parts = message.Content.Split(":");
-                    string[] coords = parts[1].Split(",");
-
-                    Vector3 reportedPosition = new Vector3
-                    (
-                        float.Parse(coords[0]),
-                        float.Parse(coords[1]),
-                        float.Parse(coords[2])
-                    );
-
-                    Debug.Log($"[COMUNICACIÓN] {name} recibió INFORM de {message.Sender.name}. Posición reportada: {reportedPosition}");
-
-                    if(!chasingPlayer)
-                    {
-                        chasingPlayer = true;
-                        searchingLastPosition = false;
-                        checkingTreasure = false;
-                        lastKnownPlayerPosition = reportedPosition;
-                        agent.speed = chaseSpeed;
-                        agent.SetDestination(reportedPosition);
-                        Debug.Log($"{name} recibió alerta: jugador en {reportedPosition}");
-                    }
-                }
-                break;
+            if (otherGuard != this && otherGuard.role == "chase")
+            {
+                otherGuard.ReceiveACLMessage(new ACLMessage("inform", this.gameObject, otherGuard.gameObject, playerPosition.ToString(), "chase_protocol", "guard_communication"));
+            }
         }
     }
-
-    
 }
