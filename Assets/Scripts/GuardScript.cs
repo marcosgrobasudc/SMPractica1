@@ -71,7 +71,13 @@ public class GuardScript : MonoBehaviour
     void Start()
     {
         agent = GetComponent<NavMeshAgent>();
-        GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
+        player = GameObject.FindGameObjectWithTag("Player")?.transform; // Buscar el jugador por tag
+
+        if (player == null)
+        {
+            Debug.LogError("NO HAY JUGADOR CON TAG 'Player' EN LA ESCENA");
+            enabled = false; // Desactiva el script
+        }    
 
         visionSensor = GetComponent<VisionSensor>();
         hearingSensor = GetComponent<HearingSensor>();    
@@ -79,9 +85,16 @@ public class GuardScript : MonoBehaviour
         if (visionSensor == null) Debug.LogError($"{name} no tiene componente VisionSensor.");
         if (hearingSensor == null) Debug.LogError($"{name} no tiene componente HearingSensor.");    
         
-        if (playerObject != null)
+        if (player != null)
         {
-            player = playerObject.transform;
+            player = player.transform;
+        }
+
+        if (player == null)
+        {
+            Debug.LogError("Juagdor no encontrado.");
+            enabled = false; // Desactivar el script si no se encuentra el jugador
+            return;
         }
         
         // Registro en el coordinador (empieza pasivo)
@@ -105,6 +118,7 @@ public class GuardScript : MonoBehaviour
         if (player == null || visionSensor == null || hearingSensor == null)
         {
             Debug.LogError("Falta una referencia crítica: player, visionSensor o hearingSensor.");
+            enabled = false;
             return; // Detener la ejecución si falta alguna referencia
         }
 
@@ -112,7 +126,7 @@ public class GuardScript : MonoBehaviour
         if (visionSensor.CanSeePlayer() || hearingSensor.CanHearPlayer())
         {
             // Si no hay coordinador, este agente asume el rol
-            if (!GuardCoordinator.Instance.HasActiveCoordinator())
+            if (GuardCoordinator.Instance == null || !GuardCoordinator.Instance.HasActiveCoordinator())
             {
                 BecomeCoordinator();
             }
