@@ -5,6 +5,7 @@ using UnityEngine.AI;
 
 public class GuardScript : MonoBehaviour
 {
+    // Variables de movimiento y sensores
     public Transform[] patrolPoints;
     public Transform treasureLocation;
     public Transform exitLocation;
@@ -15,41 +16,81 @@ public class GuardScript : MonoBehaviour
     public GameObject gameOverCanvas; // Referencia al Canvas de Game Over
     public GameObject winCanvas;      // Referencia al Canvas de Win
 
-     private NavMeshAgent agent;
+    private NavMeshAgent agent;
     private int currentPatrolIndex = 0;
     private Transform player;
     private bool chasingPlayer = false;
     private Vector3 lastKnownPlayerPosition;
     private bool searchingLastPosition = false;
     private bool checkingTreasure = false;
+    private bool sawPlayerWithTreasure = false;
 
     private VisionSensor visionSensor;
     private HearingSensor hearingSensor;
-    
     private List<ACLMessage> mailbox = new List<ACLMessage>();
-    
     private string role = "patrol";
+    private bool auctionStarted = false;
     
+    // Variables para coordinación de guardias
+    [SerializeField] private bool isCoordinator;
+    public bool IsCoordinator => isCoordinator;
+    public bool IsAvailableForAssignment() 
+    {
+        return (role == "patrol" || role == "idle");
+    }
+    public void AssignRole(string newRole) 
+    {
+        role = newRole;
+        
+        switch (role)
+        {
+            case "chase":
+                agent.speed = chaseSpeed;
+                break;
+            case "treasure":
+                agent.speed = patrolSpeed;
+                agent.SetDestination(treasureLocation.position);
+                break;
+            case "exit":
+                agent.speed = patrolSpeed;
+                agent.SetDestination(exitLocation.position);
+                break;
+            case "patrol":
+                agent.speed = patrolSpeed;
+                GoToNextPatrolPoint();
+                break;
+        }
+        
+        Debug.Log($"{name} asignado a rol: {role}");
+    }
+    public void SetTarget(Vector3 targetPosition) 
+    {
+        agent.SetDestination(targetPosition);
+    }
+
     void Start()
     {
         agent = GetComponent<NavMeshAgent>();
-        
         GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
+
+        visionSensor = GetComponent<VisionSensor>();
+        hearingSensor = GetComponent<HearingSensor>();    
+
+        if (visionSensor == null) Debug.LogError($"{name} no tiene componente VisionSensor.");
+        if (hearingSensor == null) Debug.LogError($"{name} no tiene componente HearingSensor.");    
+        
         if (playerObject != null)
         {
             player = playerObject.transform;
         }
         
-        visionSensor = GetComponent<VisionSensor>();
-        hearingSensor = GetComponent<HearingSensor>();
-        
+        // Registro en el coordinador (empieza pasivo)
         if (GuardCoordinator.Instance != null)
         {
             GuardCoordinator.Instance.RegisterGuard(this);
         }
-        
-        GoToNextPatrolPoint();
 
+        GoToNextPatrolPoint();        
 
         // Asegurarse de que el Canvas de Game Over y Win estén desactivados al inicio
         if (gameOverCanvas != null) gameOverCanvas.SetActive(false);
@@ -58,6 +99,9 @@ public class GuardScript : MonoBehaviour
 
     void Update()
     {
+
+        ProcessMailbox(); // Procesamos mensajes de la bandeja de entrada
+
         if (player == null || visionSensor == null || hearingSensor == null)
         {
             Debug.LogError("Falta una referencia crítica: player, visionSensor o hearingSensor.");
@@ -67,8 +111,23 @@ public class GuardScript : MonoBehaviour
         // **1. Prioridad: Comprobar si el guardia ve o escucha al jugador**
         if (visionSensor.CanSeePlayer() || hearingSensor.CanHearPlayer())
         {
-            // Cambiar a rol "chase" inmediatamente si detecta al jugador
-            role = "chase";
+            // Si no hay coordinador, este agente asume el rol
+            if (!GuardCoordinator.Instance.HasActiveCoordinator())
+            {
+                BecomeCoordinator();
+            }
+
+            // Si soy el coordinador, iniciio acciones
+            if (isCoordinator)
+            {
+                HandlePlayerDetection();
+            }
+
+            else if (!isCoordinator && role == "chase")
+            {
+                // Si no soy el coordinador y tengo el rol de "chase", persigo al jugador
+                Chase();
+            }
         }
 
         // **2. Si no se está persiguiendo al jugador, proceder con otros roles**
@@ -99,6 +158,40 @@ public class GuardScript : MonoBehaviour
         }
     }
 
+    private void BecomeCoordinator()
+    {
+        isCoordinator = true;
+        GuardCoordinator.Instance.SetCurrentCoordinator(this);
+        Debug.Log($"{name} ha sido ascendido a coordinador");
+    }
+
+    private void HandlePlayerDetection()
+    {
+        if (!auctionStarted)
+        {
+            auctionStarted = true;
+
+            lastKnownPlayerPosition = player.position;
+            sawPlayerWithTreasure = player.GetComponent<Movement>()?.hasTreasure ?? false;
+
+            GuardCoordinator.Instance.StartAuction(
+                caller: this,
+                playerPosition: lastKnownPlayerPosition,
+                treasureLoc: treasureLocation,
+                exitLoc: exitLocation
+            );
+
+            // Auto-asignación del coordinador
+            AssignRole("chase");
+            SetTarget(lastKnownPlayerPosition);
+        }
+
+        else
+        {
+            // Ya hemos arrancado la subasta, solo actualizamos el destino
+            SetTarget(player.position);
+        }
+    }
 
     void Chase()
     {
@@ -120,13 +213,13 @@ public class GuardScript : MonoBehaviour
         }
         else if (agent.remainingDistance < 1f)
         {
+            auctionStarted = false;
+
             // Si el guardia ya no está cerca del jugador, iniciar búsqueda de la última posición conocida
             chasingPlayer = false;
             StartCoroutine(SearchLastKnownPosition());
         }
     }
-
-
     void Patrol()
     {
         agent.speed = patrolSpeed;
@@ -183,7 +276,6 @@ public class GuardScript : MonoBehaviour
             Debug.Log("El guardia ha llegado a la salida.");
         }
     }
-
 
     void CheckTreasure()
     {
@@ -260,6 +352,45 @@ public class GuardScript : MonoBehaviour
 
     public void ReceiveACLMessage(ACLMessage message)
     {
+        if (message.Performative == "CALL_FOR_PROPOSAL")
+        {
+            // Parseamos la posición del juador
+            var parts = message.Content.Split(',');
+            Vector3 playerPos = new Vector3(
+                float.Parse(parts[0]),
+                float.Parse(parts[1]),
+                float.Parse(parts[2])
+            );
+
+            // Calculamos distancias 
+            float dPlayer   = Vector3.Distance(transform.position, playerPos);
+            float dTreasure= Vector3.Distance(transform.position, treasureLocation.position);
+            float dExit    = Vector3.Distance(transform.position, exitLocation.position);
+
+            // Enviamos propuesta al coordinador
+            string bidPayload = $"{dPlayer},{dTreasure},{dExit}";
+            SendACLMessage(
+                receiver: message.Sender,
+                performative: "PROPOSE",
+                content: bidPayload,
+                protocol: "auction_protocol"
+            );
+
+            return;
+        }
+
+        if (message.Performative == "ASSIGN_ROLE")
+        {
+            // Asignar rol al guardia
+            AssignRole(message.Content);
+            if (message.Content == "chase")
+            {
+                SetTarget(lastKnownPlayerPosition); // Establecer la posición del jugador como destino
+            }
+
+            return;
+        }
+
         mailbox.Add(message);
     }
     
@@ -283,27 +414,6 @@ public class GuardScript : MonoBehaviour
                     Debug.Log($"Recibí la posición del jugador: {playerPosition}");
                 }
             }
-            else if (message.Performative == "call_for_bids")
-            {
-                string[] positionData = message.Content.Split(',');
-                if (positionData.Length == 3)
-                {
-                    float x = float.Parse(positionData[0]);
-                    float y = float.Parse(positionData[1]);
-                    float z = float.Parse(positionData[2]);
-
-                    Vector3 playerPosition = new Vector3(x, y, z);
-                    
-                    // Ahora puedes calcular la distancia a la posición del jugador
-                    float distance = Vector3.Distance(transform.position, playerPosition);
-
-                    SendACLMessage(message.Sender, "bid", distance.ToString(), "auction_protocol");
-                }            
-            }
-            else if (message.Performative == "assign_role")
-            {
-                role = message.Content;
-            }
         }
         mailbox.Clear();
     }
@@ -312,6 +422,26 @@ public class GuardScript : MonoBehaviour
     {
         ACLMessage message = new ACLMessage(performative, this.gameObject, receiver, content, protocol, "guard_communication");
         receiver.GetComponent<GuardScript>().ReceiveACLMessage(message);
+    }
+
+    private void SendBidToAuction()
+    {
+        // Calculo distancias para la oferta
+        float distToPlayer = Vector3.Distance(transform.position, lastKnownPlayerPosition);
+        float distToTreasure = Vector3.Distance(transform.position, treasureLocation.position);
+        float distToExit = Vector3.Distance(transform.position, exitLocation.position);
+
+        // Envio mensaje bid al coordinador
+        ACLMessage bidMessage = new ACLMessage(
+            performative: "bid",
+            sender: gameObject,
+            receiver: GuardCoordinator.Instance.CurrentCoordinator.gameObject,
+            content: $"playerDist:{distToPlayer},treasureDist:{distToTreasure},exitDist:{distToExit}",
+            protocol: "auction",
+            ontology: "guard_roles"
+        );
+
+        GuardCoordinator.Instance.CurrentCoordinator.ReceiveACLMessage(bidMessage);
     }
 
     void InformGuardsAboutPlayer(Vector3 playerPosition)

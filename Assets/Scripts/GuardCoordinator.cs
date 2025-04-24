@@ -3,19 +3,19 @@ using UnityEngine;
 
 public class GuardCoordinator : MonoBehaviour
 {
-    private static GuardCoordinator instance;
-    private List<GuardScript> guards = new List<GuardScript>();
+    private static GuardCoordinator _instance;
+    private List<GuardScript> _guards = new List<GuardScript>();
     private GuardScript coordinator;
     private Dictionary<GuardScript, (float playerDist, float treasureDist, float exitDist)> bids = new Dictionary<GuardScript, (float, float, float)>();
     private Vector3 lastKnownPlayerPosition;
     private Transform treasureLocation;
     private Transform exitLocation;
-
+    
     void Awake()
     {
-        if (instance == null)
+        if (_instance == null)
         {
-            instance = this;
+            _instance = this;
         }
         else
         {
@@ -23,40 +23,44 @@ public class GuardCoordinator : MonoBehaviour
         }
     }
 
-    public static GuardCoordinator Instance
-    {
-        get { return instance; }
-    }
+    public static GuardCoordinator Instance => _instance;
+    public List<GuardScript> Guards => _guards;
 
-    public void RegisterGuard(GuardScript guard)
+    public void RegisterGuard(GuardScript newGuard)
     {
-        if (!guards.Contains(guard))
+        if (!_guards.Contains(newGuard))
         {
-            guards.Add(guard);
+            _guards.Add(newGuard);
         }
-    }
-
-    public List<GuardScript> Guards
-    {
-        get { return guards; }
     }
 
     public void StartAuction(GuardScript caller, Vector3 playerPosition, Transform treasureLoc, Transform exitLoc)
     {
-        if (guards.Count == 0) return;
+        if (Guards.Count == 0) return;
 
-        coordinator = caller;
+        SetCurrentCoordinator(caller); // Usar el método nuevo
         lastKnownPlayerPosition = playerPosition;
         treasureLocation = treasureLoc;
         exitLocation = exitLoc;
         bids.Clear();
 
-        // Enviar mensaje ACL a los demás guardias para solicitar ofertas
-        foreach (GuardScript guard in guards)
+        // Hacemos que el coordinador también persiga
+        CurrentCoordinator.AssignRole("chase");
+        CurrentCoordinator.SetTarget(playerPosition);
+
+        // Subasta: Perdimos distancias a cada guardia
+        string payload = $"{playerPosition.x},{playerPosition.y},{playerPosition.z}";
+        
+        foreach (GuardScript guard in Guards)
         {
-            if (guard != coordinator)
+            if (guard != CurrentCoordinator)
             {
-                guard.SendACLMessage(this.gameObject, "CALL_FOR_PROPOSAL", "Offer your distance", "auction");
+                guard.SendACLMessage(
+                    receiver: this.gameObject,
+                    performative: "CALL_FOR_PROPOSAL",
+                    content: payload,
+                    protocol: "auction"
+                );
             }
         }
     }
@@ -65,7 +69,21 @@ public class GuardCoordinator : MonoBehaviour
     {
         if (message.Performative == "PROPOSE")
         {
-            ProcessBid(message);
+            // Extraemos guardia y distancias
+            GuardScript sender = message.Sender.GetComponent<GuardScript>();
+            var vals = message.Content.Split(',');
+
+            float pDist = float.Parse(vals[0]);
+            float tDist = float.Parse(vals[1]);
+            float eDist = float.Parse(vals[2]);
+
+            bids[sender] = (pDist, tDist, eDist);
+
+            // Si ya tenemos todos los bid, asignamos roles
+            if (bids.Count == Guards.Count - 1)
+            {
+                AssignRoles();
+            }
         }
     }
 
@@ -79,7 +97,7 @@ public class GuardCoordinator : MonoBehaviour
 
         bids[sender] = (playerDist, treasureDist, exitDist);
 
-        if (bids.Count == guards.Count - 1)
+        if (bids.Count == Guards.Count - 1)
         {
             AssignRoles();
         }
@@ -87,25 +105,52 @@ public class GuardCoordinator : MonoBehaviour
 
     private void AssignRoles()
     {
-        List<GuardScript> availableGuards = new List<GuardScript>(bids.Keys);
-        GuardScript closestToPlayer = GetClosestGuard(availableGuards, g => bids[g].playerDist);
-        GuardScript closestToTreasure = GetClosestGuard(availableGuards, g => bids[g].treasureDist);
-        GuardScript closestToExit = GetClosestGuard(availableGuards, g => bids[g].exitDist);
+        var competitors = new List<GuardScript>(bids.Keys);
+        
+        // Buscamos el mejor perseguidor
+        var bestChase = GetClosestGuard(competitors, g => bids[g].playerDist);
+        bestChase?.SendACLMessage(
+            receiver: this.gameObject,
+            performative: "ASSIGN_ROLE",
+            content: "chase",
+            protocol: "auction"
+        );
+        competitors.Remove(bestChase);
+        
 
-        if (closestToPlayer != null)
+        // Buscamos el mejor guardián del tesoro
+        var bestGuard = GetClosestGuard(competitors, g => bids[g].treasureDist);
+        bestGuard?.SendACLMessage(
+            receiver: this.gameObject,
+            performative: "ASSIGN_ROLE",
+            content: "treasure",
+            protocol: "auction"
+        );
+        competitors.Remove(bestGuard);
+
+        // El resto que se ponga a patrullar vagos
+        foreach (var g in competitors)
         {
-            closestToPlayer.SendACLMessage(coordinator.gameObject, "ACCEPT_PROPOSAL", "ChasePlayer", "auction");
-            availableGuards.Remove(closestToPlayer);
+            g.SendACLMessage(
+                receiver: this.gameObject,
+                performative: "ASSIGN_ROLE",
+                content: "patrol",
+                protocol: "auction"
+            );
         }
-        if (closestToTreasure != null && closestToTreasure != closestToPlayer)
-        {
-            closestToTreasure.SendACLMessage(coordinator.gameObject, "ACCEPT_PROPOSAL", "CheckTreasure", "auction");
-            availableGuards.Remove(closestToTreasure);
-        }
-        if (closestToExit != null && closestToExit != closestToPlayer && closestToExit != closestToTreasure)
-        {
-            closestToExit.SendACLMessage(coordinator.gameObject, "ACCEPT_PROPOSAL", "GuardExit", "auction");
-        }
+    }
+
+    public GuardScript CurrentCoordinator { get; private set; }
+
+    public bool HasActiveCoordinator()
+    {
+        return CurrentCoordinator != null;
+    }
+
+    public void SetCurrentCoordinator(GuardScript coordinator)
+    {
+        this.CurrentCoordinator = coordinator;
+        this.coordinator = coordinator; // Mantener compatibilidad con tu variable existente
     }
 
     private GuardScript GetClosestGuard(List<GuardScript> guards, System.Func<GuardScript, float> distanceFunc)
