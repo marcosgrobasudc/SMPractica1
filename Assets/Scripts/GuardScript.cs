@@ -434,6 +434,7 @@ public class GuardScript : MonoBehaviour
     
     public void SendACLMessage(GameObject receiver, string performative, string content, string protocol)
     {
+        Debug.Log(receiver.name);
         ACLMessage message = new ACLMessage(performative, this.gameObject, receiver, content, protocol, "guard_communication");
         receiver.GetComponent<GuardScript>().ReceiveACLMessage(message);
     }
