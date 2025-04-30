@@ -1,7 +1,9 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
+
 
 public class GuardScript : MonoBehaviour
 {
@@ -32,7 +34,10 @@ public class GuardScript : MonoBehaviour
     private bool auctionStarted = false;
     
     // Variables para coordinación de guardias
-    [SerializeField] private bool isCoordinator;
+    private static GuardScript currentCoordinator;
+    private bool isCoordinator;
+    private Dictionary<GuardScript, (float, float, float)> bids = new Dictionary<GuardScript, (float, float, float)>();
+    private static List<GuardScript> allGuards = new List<GuardScript>();
     public bool IsCoordinator => isCoordinator;
     public bool IsAvailableForAssignment() 
     {
@@ -74,6 +79,13 @@ public class GuardScript : MonoBehaviour
 
     void Start()
     {
+        // Registramos cada guardia en una lista estática compartida
+        // Evitar duplicados al recargar escena
+        if (!allGuards.Contains(this))
+        {
+            allGuards.Add(this);
+        }
+
         agent = GetComponent<NavMeshAgent>();
         player = GameObject.FindGameObjectWithTag("Player")?.transform; // Buscar el jugador por tag
 
@@ -100,12 +112,6 @@ public class GuardScript : MonoBehaviour
             enabled = false; // Desactivar el script si no se encuentra el jugador
             return;
         }
-        
-        // Registro en el coordinador (empieza pasivo)
-        if (GuardCoordinator.Instance != null)
-        {
-            GuardCoordinator.Instance.RegisterGuard(this);
-        }
 
         GoToNextPatrolPoint();        
 
@@ -130,9 +136,10 @@ public class GuardScript : MonoBehaviour
         if (visionSensor.CanSeePlayer() || hearingSensor.CanHearPlayer())
         {
             // Si no hay coordinador, este agente asume el rol
-            if (!GuardCoordinator.Instance.HasActiveCoordinator())
+            if (!isCoordinator && currentCoordinator == null)
             {
-                BecomeCoordinator();
+                // Intentar convertirse en coordinador
+                TryBecomeCoordinator();
             }
 
             // Si soy el coordinador, iniciio acciones
@@ -177,11 +184,75 @@ public class GuardScript : MonoBehaviour
         }
     }
 
-    private void BecomeCoordinator()
+    void OnDestroy()
     {
+        allGuards.Remove(this); // Eliminar el guardia de la lista estática al destruir el objeto
+        if (currentCoordinator == this)
+        {
+            currentCoordinator = null; // Si el guardia es el coordinador, eliminarlo de la referencia estática
+        }
+    }
+
+    private void TryBecomeCoordinator()
+    {
+        lock (allGuards)                    // Bloqueamos para evitar condiciones de carrera
+        {
+            if (currentCoordinator == null)
+            {
+                currentCoordinator = this;
+                isCoordinator = true;
+                StartAuction();
+            }
+        }
+    }
+
+    private void StartAuction()
+    {
+        currentCoordinator = this; // Asegurar referencia
         isCoordinator = true;
-        GuardCoordinator.Instance.SetCurrentCoordinator(this);
-        Debug.Log($"{name} ha sido ascendido a coordinador");
+        auctionStarted = true; // Marcar subasta como iniciada
+
+        Debug.Log($"🔄 {name} inició subasta. Enviando solicitudes a {allGuards.Count - 1} guardias");
+
+        Vector3 pos = lastKnownPlayerPosition;
+        string content = $"{pos.x},{pos.y},{pos.z}";
+
+        // Enviamos mensaje a todos los guardias para recolectar bids
+        foreach (GuardScript guard in allGuards)
+        {
+            if (guard != this)
+            {
+                SendACLMessage(
+                    receiver: guard.gameObject,
+                    performative: "REQUEST_BID",
+                    content: content,
+                    protocol: "auction"
+                );
+            }
+        }
+
+        StartCoroutine(WaitForBids());
+    }
+
+    private IEnumerator WaitForBids()
+    {
+        float timeout = 5f;
+        float elapsed = 0f;
+        int expectedBids = allGuards.Count - 1;
+
+        Debug.Log($"⏳ Esperando {expectedBids} bids...");
+
+        while (elapsed < timeout && bids.Count < expectedBids)
+        {
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        Debug.Log($"✅ Recibidos {bids.Count}/{expectedBids} bids");
+
+        AssignRoles();
+        currentCoordinator = null;
+        isCoordinator = false;
     }
 
     private void HandlePlayerDetection()
@@ -192,13 +263,6 @@ public class GuardScript : MonoBehaviour
 
             lastKnownPlayerPosition = player.position;
             sawPlayerWithTreasure = player.GetComponent<Movement>()?.hasTreasure ?? false;
-
-            GuardCoordinator.Instance.StartAuction(
-                caller: this,
-                playerPosition: lastKnownPlayerPosition,
-                treasureLoc: treasureLocation,
-                exitLoc: exitLocation
-            );
 
             // Auto-asignación del coordinador
             AssignRole("chase");
@@ -369,31 +433,34 @@ public class GuardScript : MonoBehaviour
         }
     }
 
+    public void ReceiveBid(GuardScript sender, float pDist, float tDist, float eDist)
+    {
+        if (isCoordinator && sender != null)
+        {
+            Debug.Log($"Recibido bid de {sender.name}: {pDist}, {tDist}, {eDist}");
+            bids[sender] = (pDist, tDist, eDist);
+        }
+    }
+
     public void ReceiveACLMessage(ACLMessage message)
     {
-        if (message.Performative == "CALL_FOR_PROPOSAL")
+
+        Debug.Log($"{name} recibió mensaje '{message.Performative}' de {(message.Sender != null ? message.Sender.name : "null")}");
+
+        if (message.Performative == "REQUEST_BID" && !isCoordinator)
         {
-            // Parseamos la posición del juador
-            var parts = message.Content.Split(',');
-            Vector3 playerPos = new Vector3(
-                float.Parse(parts[0]),
-                float.Parse(parts[1]),
-                float.Parse(parts[2])
-            );
+            Vector3 playerPos   = ParsePosition(message.Content);
+            float playerDist    = Vector3.Distance(transform.position, playerPos);
+            float treasureDist  = Vector3.Distance(transform.position, treasureLocation.position);
+            float exitDist      = Vector3.Distance(transform.position, exitLocation.position);
 
-            // Calculamos distancias 
-            float dPlayer   = Vector3.Distance(transform.position, playerPos);
-            float dTreasure= Vector3.Distance(transform.position, treasureLocation.position);
-            float dExit    = Vector3.Distance(transform.position, exitLocation.position);
-
-            // Enviamos propuesta al coordinador
-            string bidPayload = $"{dPlayer},{dTreasure},{dExit}";
-            SendACLMessage(
-                receiver: message.Sender,
-                performative: "PROPOSE",
-                content: bidPayload,
-                protocol: "auction_protocol"
-            );
+            // Le mando mis distancias de vuelta al coordinador
+            var coord = message.Sender.GetComponent<GuardScript>();
+            if (coord != null)
+            {
+                Debug.Log($"{name} va a llamar a ReceiveBid en {coord.name}");
+                coord.ReceiveBid(this, playerDist, treasureDist, exitDist);
+            }
 
             return;
         }
@@ -413,6 +480,66 @@ public class GuardScript : MonoBehaviour
         mailbox.Add(message);
     }
     
+    private Vector3 ParsePosition(string positionStr)
+    {
+        string[] parts = positionStr.Split(',');
+        
+        return new Vector3(
+            float.Parse(parts[0]),
+            float.Parse(parts[1]),
+            float.Parse(parts[2])
+        );
+    }
+
+    private void AssignRoles()
+    {
+        List<GuardScript> availableGuards = new List<GuardScript>(allGuards);
+        availableGuards.Remove(this); // El coordinador ya tiene rol
+
+        // Auto-asignar rol de perseguidor
+        AssignClosestRole("chase", availableGuards, g => bids[g].Item1);
+        
+        // Asignar guardián del tesoro
+        AssignClosestRole("treasure", availableGuards, g => bids[g].Item2);
+        
+        // Asignar guardián de salida
+        AssignClosestRole("exit", availableGuards, g => bids[g].Item3);
+
+        // El resto patrulla
+        foreach (GuardScript guard in availableGuards)
+        {
+            guard.AssignRole("patrol");
+        }
+    }
+
+    private void AssignClosestRole(string role, List<GuardScript> guards, Func<GuardScript, float> distanceSelector)
+    {
+        GuardScript closest = null;
+        float minDistance = Mathf.Infinity;
+
+        foreach (GuardScript guard in guards)
+        {
+            if (!bids.ContainsKey(guard))
+            {
+                Debug.LogWarning($"Guardia {guard.name} no tiene una oferta registrada.");
+                continue; // Si el guardia no tiene una oferta, lo ignoramos
+            }
+
+            float dist = distanceSelector(guard);
+            if (dist < minDistance)
+            {
+                minDistance = dist;
+                closest = guard;
+            }
+        }
+
+        if (closest != null)
+        {
+            closest.AssignRole(role);
+            guards.Remove(closest);
+        }
+    }
+
     private void ProcessMailbox()
     {
         foreach (ACLMessage message in mailbox)
@@ -439,35 +566,22 @@ public class GuardScript : MonoBehaviour
     
     public void SendACLMessage(GameObject receiver, string performative, string content, string protocol)
     {
+
+        if (receiver == null)
+        {
+            Debug.LogError("Intentando enviar mensaje a receptor nulo");
+            return;
+        }
+
         Debug.Log(receiver.name);
         ACLMessage message = new ACLMessage(performative, this.gameObject, receiver, content, protocol, "guard_communication");
         receiver.GetComponent<GuardScript>().ReceiveACLMessage(message);
     }
 
-    private void SendBidToAuction()
-    {
-        // Calculo distancias para la oferta
-        float distToPlayer = Vector3.Distance(transform.position, lastKnownPlayerPosition);
-        float distToTreasure = Vector3.Distance(transform.position, treasureLocation.position);
-        float distToExit = Vector3.Distance(transform.position, exitLocation.position);
-
-        // Envio mensaje bid al coordinador
-        ACLMessage bidMessage = new ACLMessage(
-            performative: "bid",
-            sender: gameObject,
-            receiver: GuardCoordinator.Instance.CurrentCoordinator.gameObject,
-            content: $"playerDist:{distToPlayer},treasureDist:{distToTreasure},exitDist:{distToExit}",
-            protocol: "auction",
-            ontology: "guard_roles"
-        );
-
-        GuardCoordinator.Instance.CurrentCoordinator.ReceiveACLMessage(bidMessage);
-    }
-
     void InformGuardsAboutPlayer(Vector3 playerPosition)
     {
         // Enviar información solo a los guardias en modo "chase"
-        foreach (GuardScript otherGuard in GuardCoordinator.Instance.Guards)
+        foreach (GuardScript otherGuard in allGuards)
         {
             if (otherGuard != this && otherGuard.role == "chase")
             {
