@@ -67,6 +67,10 @@ public class GuardScript : MonoBehaviour
     {
         agent.SetDestination(targetPosition);
     }
+    public void SetAuctionStarted(bool status)
+    {
+        auctionStarted = status;
+    }
 
     void Start()
     {
@@ -126,14 +130,15 @@ public class GuardScript : MonoBehaviour
         if (visionSensor.CanSeePlayer() || hearingSensor.CanHearPlayer())
         {
             // Si no hay coordinador, este agente asume el rol
-            if (GuardCoordinator.Instance == null || !GuardCoordinator.Instance.HasActiveCoordinator())
+            if (!GuardCoordinator.Instance.HasActiveCoordinator())
             {
                 BecomeCoordinator();
             }
 
             // Si soy el coordinador, iniciio acciones
-            if (isCoordinator)
+            if (isCoordinator && !auctionStarted)
             {
+                // Si soy el coordinador y veo al jugador, iniciar subasta
                 HandlePlayerDetection();
             }
 

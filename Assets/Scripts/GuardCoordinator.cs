@@ -34,11 +34,23 @@ public class GuardCoordinator : MonoBehaviour
         }
     }
 
+    public void ResetCoordinator()
+    {
+        if (CurrentCoordinator != null)
+        {
+            CurrentCoordinator.SetAuctionStarted(false);
+        }
+        CurrentCoordinator = null;
+        coordinator = null;
+    }
+
     public void StartAuction(GuardScript caller, Vector3 playerPosition, Transform treasureLoc, Transform exitLoc)
     {
-        if (Guards.Count == 0) return;
+        if (Guards.Count == 0 || caller == null) return;
 
-        SetCurrentCoordinator(caller); // Usar el método nuevo
+        SetCurrentCoordinator(caller);
+        caller.SetAuctionStarted(true);
+
         lastKnownPlayerPosition = playerPosition;
         treasureLocation = treasureLoc;
         exitLocation = exitLoc;
@@ -138,6 +150,8 @@ public class GuardCoordinator : MonoBehaviour
                 protocol: "auction"
             );
         }
+
+        ResetCoordinator(); // Reiniciamos el coordinador después de asignar roles
     }
 
     public GuardScript CurrentCoordinator { get; private set; }
