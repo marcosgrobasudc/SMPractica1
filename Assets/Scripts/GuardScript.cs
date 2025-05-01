@@ -36,6 +36,7 @@ public class GuardScript : MonoBehaviour
     // Variables para coordinación de guardias
     private static GuardScript currentCoordinator;
     private bool isCoordinator;
+    private bool rolesAssigned = false;
     private Dictionary<GuardScript, (float, float, float)> bids = new Dictionary<GuardScript, (float, float, float)>();
     private static List<GuardScript> allGuards = new List<GuardScript>();
     public bool IsCoordinator => isCoordinator;
@@ -133,7 +134,10 @@ public class GuardScript : MonoBehaviour
         }
 
         // **1. Prioridad: Comprobar si el guardia ve o escucha al jugador**
-        if (visionSensor.CanSeePlayer() || hearingSensor.CanHearPlayer())
+        if (
+            (visionSensor.CanSeePlayer() || hearingSensor.CanHearPlayer())
+            && !rolesAssigned && !auctionStarted && currentCoordinator == null
+        )
         {
             // Si no hay coordinador, este agente asume el rol
             if (!isCoordinator && currentCoordinator == null)
@@ -201,6 +205,10 @@ public class GuardScript : MonoBehaviour
             {
                 currentCoordinator = this;
                 isCoordinator = true;
+
+                AssignRole("chase");
+                SetTarget(player.position);
+                
                 StartAuction();
             }
         }
@@ -510,6 +518,11 @@ public class GuardScript : MonoBehaviour
         {
             guard.AssignRole("patrol");
         }
+
+        rolesAssigned = true;
+        auctionStarted = false;
+        currentCoordinator = null;
+        isCoordinator = false;
     }
 
     private void AssignClosestRole(string role, List<GuardScript> guards, Func<GuardScript, float> distanceSelector)
