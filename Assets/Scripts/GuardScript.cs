@@ -405,7 +405,7 @@ public class GuardScript : MonoBehaviour
     // Este método debe llamarse cuando el guardia toca al jugador
     void OnTriggerEnter(Collider other)
     {
-        Debug.Log("Guardia ha tocado a algo: " + other.gameObject.name);
+        // Debug.Log("Guardia ha tocado a algo: " + other.gameObject.name);
 
         if (other.CompareTag("Player"))
         {
