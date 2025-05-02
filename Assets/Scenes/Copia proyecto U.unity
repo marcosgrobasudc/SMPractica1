@@ -7954,8 +7954,6 @@ MonoBehaviour:
   patrolPoints:
   - {fileID: 973992513}
   - {fileID: 1687712195}
-  treasureLocation: {fileID: 783891996}
-  exitLocation: {fileID: 830170856}
   chaseSpeed: 22
   patrolSpeed: 17
   lostPlayerWaitTime: 3
@@ -8366,8 +8364,6 @@ MonoBehaviour:
   - {fileID: 1889602651}
   - {fileID: 2141038271}
   - {fileID: 973992513}
-  treasureLocation: {fileID: 783891996}
-  exitLocation: {fileID: 830170856}
   chaseSpeed: 22
   patrolSpeed: 17
   lostPlayerWaitTime: 3
@@ -10416,7 +10412,7 @@ GameObject:
   - component: {fileID: 783891992}
   m_Layer: 0
   m_Name: Tesoro
-  m_TagString: Untagged
+  m_TagString: Treasure
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -11008,7 +11004,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
+  m_Size: {x: 1, y: 20, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!23 &830170854
 MeshRenderer:
@@ -17959,8 +17955,6 @@ MonoBehaviour:
   patrolPoints:
   - {fileID: 1460696558}
   - {fileID: 1889602651}
-  treasureLocation: {fileID: 783891996}
-  exitLocation: {fileID: 830170856}
   chaseSpeed: 22
   patrolSpeed: 17
   lostPlayerWaitTime: 3
@@ -18133,7 +18127,7 @@ GameObject:
   - component: {fileID: 1364431236}
   m_Layer: 0
   m_Name: META null
-  m_TagString: Untagged
+  m_TagString: Exit
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -20466,8 +20460,6 @@ MonoBehaviour:
   patrolPoints:
   - {fileID: 1460696558}
   - {fileID: 274785505}
-  treasureLocation: {fileID: 783891996}
-  exitLocation: {fileID: 830170856}
   chaseSpeed: 22
   patrolSpeed: 17
   lostPlayerWaitTime: 3
@@ -25602,8 +25594,6 @@ MonoBehaviour:
   patrolPoints:
   - {fileID: 274785505}
   - {fileID: 1168806376}
-  treasureLocation: {fileID: 783891996}
-  exitLocation: {fileID: 830170856}
   chaseSpeed: 22
   patrolSpeed: 17
   lostPlayerWaitTime: 3

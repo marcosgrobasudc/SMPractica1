@@ -6,6 +6,8 @@ TagManager:
   tags:
   - Collectible
   - Guard
+  - Treasure
+  - Exit
   layers:
   - Default
   - TransparentFX
