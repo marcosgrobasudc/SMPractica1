@@ -26,6 +26,9 @@ public class GuardScript : MultiAgentSystem
     private bool searchingLastPosition = false;
     private bool checkingTreasure = false;
     private bool sawPlayerWithTreasure = false;
+    private bool hasReachedExit = false;
+    private bool hasCheckedTreasure = false;
+    private bool hasLoggedTreasureCheck = false;
 
     private VisionSensor visionSensor;
     private HearingSensor hearingSensor;
@@ -204,6 +207,8 @@ public class GuardScript : MultiAgentSystem
         currentPatrolIndex = (currentPatrolIndex + 1) % patrolPoints.Length;
     }
 
+
+
     IEnumerator SearchLastKnownPosition()
     {
         searchingLastPosition = true;
@@ -211,16 +216,20 @@ public class GuardScript : MultiAgentSystem
 
         yield return new WaitForSeconds(lostPlayerWaitTime);
 
-        if (sawPlayerWithTreasure)
+        if (!hasLoggedTreasureCheck) // Solo imprime una vez
         {
-            Debug.Log("Guardia perdió de vista al jugador con el tesoro. Va a la salida.");
-            agent.SetDestination(ExitLocation.position);
-        }
-        else
-        {
-            Debug.Log("Guardia va a revisar el tesoro.");
-            checkingTreasure = true;
-            agent.SetDestination(TreasureLocation.position);
+            if (sawPlayerWithTreasure)
+            {
+                Debug.Log("Guardia perdió de vista al jugador con el tesoro. Va a la salida.");
+                agent.SetDestination(ExitLocation.position);
+            }
+            else
+            {
+                Debug.Log("Guardia va a revisar el tesoro.");
+                checkingTreasure = true;
+                agent.SetDestination(TreasureLocation.position);
+            }
+            hasLoggedTreasureCheck = true;
         }
 
         searchingLastPosition = false;
@@ -231,34 +240,43 @@ public class GuardScript : MultiAgentSystem
         // Si ya estamos en la salida, no hacer nada
         if (Vector3.Distance(transform.position, ExitLocation.position) < 1f)
         {
+            if (!hasReachedExit) // Solo imprime una vez
+            {
+                Debug.Log("El guardia ha llegado a la salida.");
+                hasReachedExit = true;
+            }
             return;
         }
 
+        // Si no ha llegado, reinicia el flag y sigue moviéndose
+        hasReachedExit = false;
         agent.speed = patrolSpeed;
         agent.SetDestination(ExitLocation.position);
-
-        if (agent.remainingDistance < 1f && !agent.pathPending)
-        {
-            Debug.Log("El guardia ha llegado a la salida.");
-        }
     }
 
     void CheckTreasure()
     {
-        if (agent.remainingDistance < 1f)
+        if (agent.remainingDistance < 1f && !agent.pathPending)
         {
-            checkingTreasure = false;
-            Movement playerMovement = player.GetComponent<Movement>();
-            if (playerMovement != null && playerMovement.hasTreasure)
+            if (!hasCheckedTreasure) // Solo imprime una vez
             {
-                Debug.Log("El guardia revisó el tesoro y no está allí. Va a la salida.");
-                agent.SetDestination(ExitLocation.position);
+                Movement playerMovement = player.GetComponent<Movement>();
+                if (playerMovement != null && playerMovement.hasTreasure)
+                {
+                    Debug.Log("El guardia revisó el tesoro y no está allí. Va a la salida.");
+                    agent.SetDestination(ExitLocation.position);
+                }
+                else
+                {
+                    Debug.Log("El guardia revisó el tesoro y sigue ahí. Retomando patrullaje.");
+                    Patrol();
+                }
+                hasCheckedTreasure = true; // Evita que se repita el mensaje
             }
-            else
-            {
-                Debug.Log("El guardia revisó el tesoro y sigue ahí. Retomando patrullaje.");
-                Patrol();
-            }
+        }
+        else
+        {
+            hasCheckedTreasure = false; // Reinicia si se aleja del tesoro
         }
     }
 

@@ -185,30 +185,43 @@ public abstract class MultiAgentSystem : MonoBehaviour
     
     protected Vector3 ParsePosition(string positionStr)
     {
-        // Primero dividir por punto y coma
-        string[] parts = positionStr.Split(';');
-        
-        if (parts.Length != 3)
-        {
-            Debug.LogError($"Formato inválido. Se esperaban 3 valores. Recibido: {positionStr}");
-            return Vector3.zero;
-        }
-
         try
         {
-            // Usar CultureInfo.InvariantCulture para manejar puntos decimales
-            return new Vector3(
-                float.Parse(parts[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture),
-                float.Parse(parts[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture),
-                float.Parse(parts[2], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture)
-            );
+            // Limpia la cadena: elimina paréntesis y espacios
+            string cleaned = positionStr
+                .Replace("(", "")
+                .Replace(")", "")
+                .Replace(" ", "");
+
+            // Intenta dividir por punto y coma
+            string[] parts = cleaned.Split(';');
+
+            // Si no hay 3 partes, intenta dividir por coma
+            if (parts.Length != 3)
+            {
+                parts = cleaned.Split(',');
+            }
+
+            // Si aún no hay 3 partes, lanza error
+            if (parts.Length != 3)
+            {
+                throw new System.Exception($"Formato inválido. Se esperaban 3 valores. Recibido: {positionStr}");
+            }
+
+            // Convierte a float usando CultureInfo.InvariantCulture para evitar problemas con decimales
+            float x = float.Parse(parts[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture);
+            float y = float.Parse(parts[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture);
+            float z = float.Parse(parts[2], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture);
+
+            return new Vector3(x, y, z);
         }
         catch (System.Exception e)
         {
-            Debug.LogError($"Error al convertir números en: {positionStr}. Error: {e.Message}");
-            return Vector3.zero;
+            Debug.LogError($"Error al analizar la posición: {positionStr}. Error: {e.Message}");
+            return Vector3.zero; // Retorna un valor por defecto en caso de error
         }
     }
+
     protected void AssignRoles()
     {
         List<MultiAgentSystem> availableAgents = new List<MultiAgentSystem>(allAgents);
@@ -263,15 +276,8 @@ public abstract class MultiAgentSystem : MonoBehaviour
         {
             if (message.Performative == "inform")
             {
-                string[] positionData = message.Content.Split(',');
-                if (positionData.Length == 3)
-                {
-                    float x = float.Parse(positionData[0]);
-                    float y = float.Parse(positionData[1]);
-                    float z = float.Parse(positionData[2]);
-                    Vector3 playerPosition = new Vector3(x, y, z);
-                    Debug.Log($"Recibí la posición del jugador: {playerPosition}");
-                }
+                Vector3 playerPosition = ParsePosition(message.Content);
+                // Debug.Log($"Recibí la posición del jugador: {playerPosition}");
             }
         }
         mailbox.Clear();
