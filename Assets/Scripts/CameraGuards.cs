@@ -1,6 +1,7 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.AI;
+using System.Globalization;
 
 public class CameraAgent : MultiAgentSystem
 {
@@ -83,7 +84,8 @@ public class CameraAgent : MultiAgentSystem
     void OnPlayerSpotted()
     {
         Vector3 pos = playerTransform.position;
-        string content = $"{pos.x:F3};{pos.y:F3};{pos.z:F3}";
+        string content = string.Format(CultureInfo.InvariantCulture, "{0:F3};{1:F3};{2:F3}",
+            pos.x, pos.y, pos.z);
 
         // Usar SendACLMessage heredado para avisar a todos los agentes
         foreach (var agent in allAgents)
