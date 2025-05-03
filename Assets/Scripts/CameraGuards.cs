@@ -1,7 +1,8 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.AI;
 
-public class CameraGuards : MonoBehaviour
+public class CameraAgent : MultiAgentSystem
 {
     [Header("Visión")]
     public float viewDistance = 20f;
@@ -15,8 +16,18 @@ public class CameraGuards : MonoBehaviour
     private Transform playerTransform;
     private bool playerInSight = false;
 
-    void Start()
+    // Implementación abstracta (no relevante para camera)
+    protected override (float, float, float) CalculateDistances(Vector3 playerPosition)
     {
+        // Cameras no hacen pujjas
+        float dist = Vector3.Distance(transform.position, playerPosition);
+        return (dist, dist, dist);
+    }
+
+    protected override void Start()
+    {
+        base.Start();
+
         GameObject playerGO = GameObject.FindGameObjectWithTag("Player");
         if (playerGO != null)
         {
@@ -25,7 +36,7 @@ public class CameraGuards : MonoBehaviour
         }
         else
         {
-            Debug.LogError("CameraGuards: no se encontró ningún GameObject con tag 'Player'");
+            Debug.LogError("CameraAgent: No se encontró el objeto del jugador con tag 'Player'.");
             enabled = false;
         }
     }
@@ -41,10 +52,12 @@ public class CameraGuards : MonoBehaviour
 
     void CheckForPlayer()
     {
+        if (playerTransform == null) return;
+
         Vector3 dirToPlayer = (playerTransform.position - transform.position).normalized;
         float distToPlayer = Vector3.Distance(transform.position, playerTransform.position);
 
-        // Está dentro del ángulo?
+        // Comprueba ángulo y distancia
         float angle = Vector3.Angle(transform.forward, dirToPlayer);
         if (angle > viewAngle * 0.5f || distToPlayer > viewDistance)
         {
@@ -52,7 +65,7 @@ public class CameraGuards : MonoBehaviour
             return;
         }
 
-        // Comprobamos obstrucción
+        // Comprueba obstrucción
         if (!Physics.Raycast(transform.position, dirToPlayer, distToPlayer, obstructionMask))
         {
             if (!playerInSight)
@@ -70,21 +83,22 @@ public class CameraGuards : MonoBehaviour
     void OnPlayerSpotted()
     {
         Vector3 pos = playerTransform.position;
-        string content = $"{pos.x:F3},{pos.y:F3},{pos.z:F3}";
+        string content = $"{pos.x:F3};{pos.y:F3};{pos.z:F3}";
 
-        foreach (var agent in FindObjectsOfType<MultiAgentSystem>())
+        // Usar SendACLMessage heredado para avisar a todos los agentes
+        foreach (var agent in allAgents)
         {
-            ACLMessage msg = new ACLMessage(
-                performative: "inform",
-                sender: this.gameObject,          // <- Aquí va this.gameObject
-                receiver: agent.gameObject,
-                content: content,
-                protocol: "camera_alert",
-                ontology: "guard_communication"   // corrige typo si acaso
-            );
-            agent.ReceiveACLMessage(msg);
+            if (agent != this)
+            {
+                SendACLMessage(
+                    receiver: agent.gameObject,
+                    performative: "inform",
+                    content: content,
+                    protocol: "camera_alert"
+                );
+            }
         }
 
-        Debug.Log($"CameraGuards ({name}) vio al jugador y avisó a {FindObjectsOfType<MultiAgentSystem>().Length} guardias.");
+        Debug.Log($"({name}) vio al jugador y avisó a {allAgents.Count - 1} agentes.");
     }
 }
