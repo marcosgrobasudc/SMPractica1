@@ -37,6 +37,13 @@ public class GuardScript : MultiAgentSystem
     private float informChaseInterval = 0.5f;
     private float lastInformTime = 0f;
 
+    private bool guardingTreasure = false;
+
+    // Varibles puntos de bloqueo
+    [Header("Puntos estratégicos para atrapar al jugador")]
+    public Transform[] blockages;
+    private bool guardingBlockage = false;
+
 
     public Transform GetPlayerPosition()
     {
@@ -139,6 +146,22 @@ public class GuardScript : MultiAgentSystem
                     Debug.LogWarning($"Rol desconocido: {role}");
                     break;
             }
+
+            // Si estamos en un punto estratégico, vigilamos
+            if (guardingBlockage && !visionSensor.CanSeePlayer() && !hearingSensor.CanHearPlayer())
+            {
+                // No hacemos nada, solo vigilamos
+                return;
+            }
+
+            // Si estamos en un punto estratégico y vemos al jugador, vamos a perseguirlo
+            if (guardingBlockage && (visionSensor.CanSeePlayer() || hearingSensor.CanHearPlayer()))
+            {
+                guardingBlockage = false;
+                lastKnownPlayerPosition = player.position;
+                AssignRole("chase");
+                return;
+            }
         }
     }
 
@@ -185,10 +208,9 @@ public class GuardScript : MultiAgentSystem
                 lastInformTime = Time.time;
 
                 // Informamos a los demás agentes sobre la posición del jugador
-                string content = $"{lastKnownPlayerPosition.x.ToString("F4").Replace(',', '.')}," +
-                                $"{lastKnownPlayerPosition.y.ToString("F4").Replace(',', '.')}," +
+                string content = $"{lastKnownPlayerPosition.x.ToString("F4").Replace(',', '.')};" +
+                                $"{lastKnownPlayerPosition.y.ToString("F4").Replace(',', '.')};" +
                                 $"{lastKnownPlayerPosition.z.ToString("F4").Replace(',', '.')}";
-                Debug.Log($"Aquí está el jugador!! {content}");
 
                 foreach (MultiAgentSystem other in allAgents)
                 {
@@ -234,6 +256,62 @@ public class GuardScript : MultiAgentSystem
 
         agent.SetDestination(patrolPoints[currentPatrolIndex].position);
         currentPatrolIndex = (currentPatrolIndex + 1) % patrolPoints.Length;
+    }
+
+    private void GoToStrategicPoint()
+    {
+        // Buscmmos la ultima posición conocida del jugador
+        Vector3 lastPlayerPos = Vector3.zero;
+        bool found = false;
+
+        // Recorremos la mailbox de atrás a delante
+        for (int i = mailbox.Count -1; i >= 0; i--)
+        {
+            var msg = mailbox[i];
+
+            if (msg.Performative == "inform")
+            {
+                lastPlayerPos = ParsePosition(msg.Content);
+                Debug.Log($"Guardia encontró la posición del jugador: {lastPlayerPos}.");
+                found = true;
+                break;
+            }
+        }
+
+        // Mostramos los puntos de bloqueo
+        foreach (var pt in blockages)
+        {
+            Debug.Log($"Punto de bloqueo: {pt.position}");
+        }
+
+        if (!found || blockages.Length == 0)
+        {
+            Debug.LogWarning("No se encontró la posición del jugador o no hay puntos de bloqueo");
+            return;
+        }
+
+        // Buscamos el punto de bloqueo más cercano
+        Transform closest = null;
+        float minDist = Mathf.Infinity;
+
+        foreach (var pt in blockages)
+        {
+            float d = Vector3.Distance(pt.position, lastPlayerPos);
+            if (d < minDist)
+            {
+                minDist = d;
+                closest = pt;
+            }
+        }
+
+        // Nos movemos hasta ese punto y esperamos ahí vigilando
+        if (closest != null)
+        {
+            Debug.Log($"{name} va al punto '{closest.name}' cerca de {lastPlayerPos}.");
+            agent.isStopped = false;
+            agent.SetDestination(closest.position);
+            guardingBlockage = true;        
+        }
     }
 
     IEnumerator SearchLastKnownPosition()
@@ -283,27 +361,32 @@ public class GuardScript : MultiAgentSystem
 
     void CheckTreasure()
     {
-        if (agent.remainingDistance < 1f && !agent.pathPending)
+        // Si no hemos llegado todavía, toca resetar el flag
+        if (agent.pathPending || agent.remainingDistance >= 1f)
         {
-            if (!hasCheckedTreasure) // Solo imprime una vez
-            {
-                Movement playerMovement = player.GetComponent<Movement>();
-                if (playerMovement != null && playerMovement.hasTreasure)
-                {
-                    Debug.Log("El guardia revisó el tesoro y no está allí. Va a la salida.");
-                    agent.SetDestination(ExitLocation.position);
-                }
-                else
-                {
-                    Debug.Log("El guardia revisó el tesoro y sigue ahí. Retomando patrullaje.");
-                    Patrol();
-                }
-                hasCheckedTreasure = true; // Evita que se repita el mensaje
-            }
+            hasCheckedTreasure = false;
+            return;
         }
-        else
+
+        // Una vez llegamos, chequeamos el tesoro de mi corazón
+        if (!hasCheckedTreasure)
         {
-            hasCheckedTreasure = false; // Reinicia si se aleja del tesoro
+            Movement playerMovement = player.GetComponent<Movement>();
+
+            if (playerMovement != null && playerMovement.hasTreasure)
+            {
+                Debug.Log("El guardia revisó el tesoro y no está ahí, buscando punto de bloqueo");
+                GoToStrategicPoint();                   // Buscamos a un punto de bloqueo
+            }
+
+            else
+            {
+                Debug.Log("El guardia revisó el tesoro y sigue ahí. Quedándose a vigilar.");
+                guardingTreasure = true;                // Entramos en modo vigilancia
+                agent.isStopped = true;                 // Deja de moverse                
+            }
+
+            hasCheckedTreasure = true;                  // Solo chequeamos una vez
         }
     }
 

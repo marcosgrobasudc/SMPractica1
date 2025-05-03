@@ -20,6 +20,9 @@ public abstract class MultiAgentSystem : MonoBehaviour
     protected Vector3 lastKnownPlayerPosition;
 
     public bool IsCoordinator => isCoordinator;
+
+    public static Vector3 TreasurePosOnRobbery { get; private set; }
+
     // Variables estáticas compartidas por TODOS los agentes
     private static Transform _treasureLocation;
     private static Transform _exitLocation;
@@ -28,8 +31,23 @@ public abstract class MultiAgentSystem : MonoBehaviour
     {
         get
         {
+            // Intentamos encontrar el objeto en escena
             if (_treasureLocation == null)
-                _treasureLocation = GameObject.FindWithTag("Treasure").transform;
+            {
+                var go = GameObject.FindWithTag("Treasure");
+                if (go != null)
+                {
+                    _treasureLocation = go.transform;
+                }
+                else
+                {
+                    // No está en escena: creamos un Transform "virtual" en la última posición
+                    GameObject dummy = new GameObject("TreasureDummy");
+                    dummy.transform.position = TreasurePosOnRobbery;
+                    _treasureLocation = dummy.transform;
+                }
+            }
+            
             return _treasureLocation;
         }
     }
@@ -280,7 +298,6 @@ public abstract class MultiAgentSystem : MonoBehaviour
                 // Debug.Log($"Recibí la posición del jugador: {playerPosition}");
             }
         }
-        mailbox.Clear();
     }
     
     public void SendACLMessage(GameObject receiver, string performative, string content, string protocol)

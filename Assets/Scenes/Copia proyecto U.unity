@@ -3837,6 +3837,11 @@ MonoBehaviour:
   lostPlayerWaitTime: 3
   gameOverCanvas: {fileID: 552789107}
   winCanvas: {fileID: 1617270891}
+  blockages:
+  - {fileID: 1003428115}
+  - {fileID: 757851856}
+  - {fileID: 1385422376}
+  - {fileID: 196916486}
 --- !u!136 &291863295
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -4558,7 +4563,7 @@ GameObject:
   m_Component:
   - component: {fileID: 344567784}
   m_Layer: 0
-  m_Name: Bloqueos
+  m_Name: Blockages
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -6012,6 +6017,11 @@ MonoBehaviour:
   lostPlayerWaitTime: 3
   gameOverCanvas: {fileID: 552789107}
   winCanvas: {fileID: 1617270891}
+  blockages:
+  - {fileID: 1003428115}
+  - {fileID: 757851856}
+  - {fileID: 1385422376}
+  - {fileID: 196916486}
 --- !u!136 &376468226
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -8476,6 +8486,11 @@ MonoBehaviour:
   lostPlayerWaitTime: 3
   gameOverCanvas: {fileID: 552789107}
   winCanvas: {fileID: 1617270891}
+  blockages:
+  - {fileID: 1003428115}
+  - {fileID: 757851856}
+  - {fileID: 1385422376}
+  - {fileID: 196916486}
 --- !u!136 &563800743
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -8886,6 +8901,11 @@ MonoBehaviour:
   lostPlayerWaitTime: 3
   gameOverCanvas: {fileID: 552789107}
   winCanvas: {fileID: 1617270891}
+  blockages:
+  - {fileID: 1003428115}
+  - {fileID: 757851856}
+  - {fileID: 1385422376}
+  - {fileID: 196916486}
 --- !u!136 &604921642
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -16482,7 +16502,7 @@ Transform:
   m_GameObject: {fileID: 1179344932}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -112.1, y: 22.5, z: -522.2}
+  m_LocalPosition: {x: -63, y: 22.5, z: 22}
   m_LocalScale: {x: 7, y: 7, z: 7}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -18722,6 +18742,11 @@ MonoBehaviour:
   lostPlayerWaitTime: 3
   gameOverCanvas: {fileID: 552789107}
   winCanvas: {fileID: 1617270891}
+  blockages:
+  - {fileID: 1003428115}
+  - {fileID: 757851856}
+  - {fileID: 1385422376}
+  - {fileID: 196916486}
 --- !u!136 &1358618513
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -21258,6 +21283,11 @@ MonoBehaviour:
   lostPlayerWaitTime: 3
   gameOverCanvas: {fileID: 552789107}
   winCanvas: {fileID: 1617270891}
+  blockages:
+  - {fileID: 1003428115}
+  - {fileID: 757851856}
+  - {fileID: 1385422376}
+  - {fileID: 196916486}
 --- !u!136 &1600063970
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -26494,6 +26524,11 @@ MonoBehaviour:
   lostPlayerWaitTime: 3
   gameOverCanvas: {fileID: 552789107}
   winCanvas: {fileID: 1617270891}
+  blockages:
+  - {fileID: 1385422376}
+  - {fileID: 757851856}
+  - {fileID: 196916486}
+  - {fileID: 1003428115}
 --- !u!136 &1965593993
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -28532,14 +28567,14 @@ SceneRoots:
   - {fileID: 1311435717}
   - {fileID: 1179344938}
   - {fileID: 1345981414}
-  - {fileID: 783891996}
   - {fileID: 1331122858}
-  - {fileID: 1364431235}
   - {fileID: 723271493}
   - {fileID: 552789111}
   - {fileID: 1617270895}
+  - {fileID: 344567784}
+  - {fileID: 1364431235}
+  - {fileID: 783891996}
   - {fileID: 574261131}
   - {fileID: 1822242133}
   - {fileID: 1185154996}
   - {fileID: 1637305903}
-  - {fileID: 344567784}
