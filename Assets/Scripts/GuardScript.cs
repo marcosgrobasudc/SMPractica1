@@ -33,6 +33,11 @@ public class GuardScript : MultiAgentSystem
     private VisionSensor visionSensor;
     private HearingSensor hearingSensor;
 
+    // Variables para los informs en chase
+    private float informChaseInterval = 0.5f;
+    private float lastInformTime = 0f;
+
+
     public Transform GetPlayerPosition()
     {
         return player; // Devuelve la referencia al jugador
@@ -175,6 +180,30 @@ public class GuardScript : MultiAgentSystem
             agent.speed = chaseSpeed;
             agent.SetDestination(player.position);
 
+            if (Time.time - lastInformTime > informChaseInterval)
+            {
+                lastInformTime = Time.time;
+
+                // Informamos a los demás agentes sobre la posición del jugador
+                string content = $"{lastKnownPlayerPosition.x.ToString("F4").Replace(',', '.')}," +
+                                $"{lastKnownPlayerPosition.y.ToString("F4").Replace(',', '.')}," +
+                                $"{lastKnownPlayerPosition.z.ToString("F4").Replace(',', '.')}";
+                Debug.Log($"Aquí está el jugador!! {content}");
+
+                foreach (MultiAgentSystem other in allAgents)
+                {
+                    if (other != this)
+                    {
+                        SendACLMessage(
+                            receiver: other.gameObject,
+                            performative: "inform",
+                            content: content,
+                            protocol: "chase_protocol"
+                        );
+                    }
+                }
+            }
+
             Movement playerMovement = player.GetComponent<Movement>();
             if (playerMovement != null && playerMovement.hasTreasure)
             {
@@ -206,8 +235,6 @@ public class GuardScript : MultiAgentSystem
         agent.SetDestination(patrolPoints[currentPatrolIndex].position);
         currentPatrolIndex = (currentPatrolIndex + 1) % patrolPoints.Length;
     }
-
-
 
     IEnumerator SearchLastKnownPosition()
     {
