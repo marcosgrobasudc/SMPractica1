@@ -16046,6 +16046,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9f3c94533cfff5f4097284f1031f4655, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  viewDistance: 100
+  viewAngle: 74
   obstructionMask:
     serializedVersion: 2
     m_Bits: 0
@@ -17877,7 +17879,7 @@ GameObject:
   - component: {fileID: 1345981414}
   m_Layer: 0
   m_Name: Map
-  m_TagString: Untagged
+  m_TagString: Obstruction
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -21503,6 +21505,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9f3c94533cfff5f4097284f1031f4655, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  viewDistance: 20
+  viewAngle: 90
   obstructionMask:
     serializedVersion: 2
     m_Bits: 0

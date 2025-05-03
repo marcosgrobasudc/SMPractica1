@@ -8,6 +8,7 @@ TagManager:
   - Guard
   - Treasure
   - Exit
+  - Obstruction
   layers:
   - Default
   - TransparentFX

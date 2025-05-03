@@ -3,13 +3,18 @@ using UnityEngine;
 
 public class CameraGuards : MonoBehaviour
 {
+    [Header("Visión")]
+    public float viewDistance = 20f;
+    [Range(0f, 180f)]
+    public float viewAngle = 90f;
     public LayerMask obstructionMask;
+
 
     // Cada cuánto reevalúa
     public float checkInterval = 0.5f;
 
     private Transform playerTransform;
-    private bool playerInsight = false;
+    private bool playerInSight = false;
 
     void Start()
     {
@@ -41,20 +46,27 @@ public class CameraGuards : MonoBehaviour
         Vector3 dirToPlayer = (playerTransform.position - transform.position).normalized;
         float distToPlayer = Vector3.Distance(transform.position, playerTransform.position);
 
-        // Choca con linea de visión?
-        if (!Physics.Raycast(transform.position, dirToPlayer, distToPlayer, obstructionMask))
+        // Está dentro del ángulo?
+        float angle = Vector3.Angle(transform.forward, dirToPlayer);
+        if (angle > viewAngle * 0.5f || distToPlayer > viewDistance)
         {
-            // Si no hay obstrucción, el jugador está a la vista
-            if (!playerInsight)
-            {
-                playerInsight = true;
-                Debug.Log("Jugador a la vista!");
-                // lógica para lo que sucede cuando el jugador es visto
-            }
+            playerInSight = false;
             return;
         }
 
-        playerInsight = false;
+        // 2) Comprobar obstrucción
+        if (!Physics.Raycast(transform.position, dirToPlayer, distToPlayer, obstructionMask))
+        {
+            if (!playerInSight)
+            {
+                playerInSight = true;
+                OnPlayerSpotted();
+            }
+        }
+        else
+        {
+            playerInSight = false;
+        }
     }
 
     void OnPlayerSpotted()
