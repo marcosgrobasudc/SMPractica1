@@ -9,7 +9,6 @@ public class CameraGuards : MonoBehaviour
     public float viewAngle = 90f;
     public LayerMask obstructionMask;
 
-
     // Cada cuánto reevalúa
     public float checkInterval = 0.5f;
 
@@ -19,7 +18,6 @@ public class CameraGuards : MonoBehaviour
     void Start()
     {
         GameObject playerGO = GameObject.FindGameObjectWithTag("Player");
-
         if (playerGO != null)
         {
             playerTransform = playerGO.transform;
@@ -27,7 +25,7 @@ public class CameraGuards : MonoBehaviour
         }
         else
         {
-            Debug.LogError("No se encontró el objeto del jugador con la etiqueta 'Player'.");
+            Debug.LogError("CameraGuards: no se encontró ningún GameObject con tag 'Player'");
             enabled = false;
         }
     }
@@ -54,7 +52,7 @@ public class CameraGuards : MonoBehaviour
             return;
         }
 
-        // 2) Comprobar obstrucción
+        // Comprobamos obstrucción
         if (!Physics.Raycast(transform.position, dirToPlayer, distToPlayer, obstructionMask))
         {
             if (!playerInSight)
@@ -74,21 +72,19 @@ public class CameraGuards : MonoBehaviour
         Vector3 pos = playerTransform.position;
         string content = $"{pos.x:F3},{pos.y:F3},{pos.z:F3}";
 
-        // Enviamos mensaje inform a todos los guardias
         foreach (var agent in FindObjectsOfType<MultiAgentSystem>())
         {
-            // Creamos el mensaje y lo enviamos
             ACLMessage msg = new ACLMessage(
                 performative: "inform",
-                sender: this.gameObject,
+                sender: this.gameObject,          // <- Aquí va this.gameObject
                 receiver: agent.gameObject,
                 content: content,
                 protocol: "camera_alert",
-                ontology: "guard_comunication"
+                ontology: "guard_communication"   // corrige typo si acaso
             );
-
             agent.ReceiveACLMessage(msg);
         }
-        Debug.Log($"({name}) vio al jugador y avisó a {FindObjectsOfType<MultiAgentSystem>().Length} guardias.");
+
+        Debug.Log($"CameraGuards ({name}) vio al jugador y avisó a {FindObjectsOfType<MultiAgentSystem>().Length} guardias.");
     }
 }
