@@ -15,19 +15,20 @@ public class HearingSensor : MonoBehaviour
 
     public bool CanHearPlayer()
     {
-        // Verificamos todos los emisores de sonido
         foreach (var emitter in allSoundEmitters)
         {
-            if (emitter != null && emitter.IsSoundActive())
-            {
-                float distance = Vector3.Distance(transform.position, emitter.GetSoundPosition());
-                float combinedRadius = hearingRadius + emitter.GetSoundRadius();
+            if (emitter == null || !emitter.IsSoundActive())
+                continue;
 
-                if (distance < combinedRadius)
-                {
-                    return true;
-                }
-            }
+            // Si este emitter pertenece a una puerta, lo ignoramos
+            if (emitter.GetComponent<NoisyDoor>() != null)
+                continue;
+
+            float distance = Vector3.Distance(transform.position, emitter.GetSoundPosition());
+            float combinedRadius = hearingRadius + emitter.GetSoundRadius();
+
+            if (distance < combinedRadius)
+                return true;
         }
         return false;
     }

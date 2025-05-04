@@ -44,7 +44,7 @@ public class GuardScript : MultiAgentSystem
     private bool guardingBlockage = false;
 
     // Variables para la lógica de las puertas
-    private bool justPassedDoor = false;
+    private bool justPassedDoor = true;
     private float doorPassGracePeriod = 2f;
     private int doorConfirmations = 0;
     private float doorResponseTimeout = 0.5f;
@@ -137,10 +137,12 @@ public class GuardScript : MultiAgentSystem
             && !rolesAssigned
             && currentCoordinator == null)
         {
+            Debug.Log($"{name} vio o escuchó al jugador. Iniciando subasta...");
             lastKnownPlayerPosition = player.position;
             bool hasTreasure = player.GetComponent<Movement>().hasTreasure;
             TryBecomeCoordinator(hasTreasure);
         }
+
         else
         {
             switch (role)
@@ -550,8 +552,8 @@ public class GuardScript : MultiAgentSystem
         else
         {
             // Nadie pasó por puerta → tratar como sonido “sospechoso”
-            // Debug.Log($"{name}: nadie pasó por puerta, ¡investigo!");
-            // AssignRole("chase");   // o lanzo subasta, o voy a lastKnownPlayerPosition
+            Debug.Log($"{name}: nadie pasó por puerta, ¡investigo!");
+            AssignRole("chase");   // o lanzo subasta, o voy a lastKnownPlayerPosition
         }
     }
 
