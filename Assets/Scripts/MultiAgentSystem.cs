@@ -23,6 +23,8 @@ public abstract class MultiAgentSystem : MonoBehaviour
     protected Vector3 lastKnownPlayerPosition;
 
     public bool IsCoordinator => isCoordinator;
+    public virtual bool IsGuard => false;
+    
     [Header("Puntos estratégicos para atrapar al jugador")]
     public static Transform[] blockages;
     // Variables estáticas compartidas por TODOS los agentes
@@ -147,7 +149,7 @@ public abstract class MultiAgentSystem : MonoBehaviour
                         $"{playerLastKnownPos.y.ToString("F4").Replace(',', '.')};" +
                         $"{playerLastKnownPos.z.ToString("F4").Replace(',', '.')}";
         
-        foreach (MultiAgentSystem agent in allAgents)
+        foreach (MultiAgentSystem agent in allAgents.Where(a => a.IsGuard)) // Solo a guardias
         {
             if (agent != this)
             {
@@ -167,7 +169,7 @@ public abstract class MultiAgentSystem : MonoBehaviour
     {
         float timeout = 5f;
         float elapsed = 0f;
-        int expectedBids = allAgents.Count - 1;
+        int expectedBids = allAgents.Count(a => a.IsGuard) - 1; // Solo guardias -1 (coordinador)
 
         Debug.Log($"⏳ Esperando {expectedBids} bids...");
 
@@ -201,26 +203,41 @@ public abstract class MultiAgentSystem : MonoBehaviour
     {
         Debug.Log($"{name} recibió mensaje '{message.Performative}' de {(message.Sender != null ? message.Sender.name : "null")}");
 
-        if (message.Performative == "REQUEST_BID" && !isCoordinator)
+            // Las cámaras ignoran mensajes de subastas
+        if (!IsGuard)
         {
-            Vector3 playerPos = ParsePosition(message.Content);
-            var distances = CalculateDistances(playerPos);
-            
-            // Si el jugador tiene el tesoro, ignorar distancia al tesoro (asignar valor infinito)
-            float adjustedTreasureDist = PlayerHasTreasure ? Mathf.Infinity : distances.treasureDist;
-            
-            var coord = message.Sender.GetComponent<MultiAgentSystem>();
-            if (coord != null)
+            return;
+        }
+        else
+        {
+            if (message.Performative == "inform" && message.Protocol == "position_update")
             {
-                coord.ReceiveBid(this, distances.playerDist, adjustedTreasureDist, distances.exitDist);
+                // Actualizar última posición conocida (para todos los agentes)
+                lastKnownPlayerPosition = ParsePosition(message.Content);
+                return;
+            }
+            if (message.Performative == "REQUEST_BID" && !isCoordinator)
+            {
+                Vector3 playerPos = ParsePosition(message.Content);
+                var distances = CalculateDistances(playerPos);
+                
+                // Si el jugador tiene el tesoro, ignorar distancia al tesoro (asignar valor infinito)
+                float adjustedTreasureDist = PlayerHasTreasure ? Mathf.Infinity : distances.treasureDist;
+                
+                var coord = message.Sender.GetComponent<MultiAgentSystem>();
+                if (coord != null)
+                {
+                    coord.ReceiveBid(this, distances.playerDist, adjustedTreasureDist, distances.exitDist);
+                }
+            }
+
+            if (message.Performative == "ASSIGN_ROLE")
+            {
+                AssignRole(message.Content);
+                return;
             }
         }
 
-        if (message.Performative == "ASSIGN_ROLE")
-        {
-            AssignRole(message.Content);
-            return;
-        }
 
         mailbox.Add(message);
     }
@@ -259,7 +276,7 @@ public abstract class MultiAgentSystem : MonoBehaviour
         if (allAgents == null || allAgents.Count == 0) return;
 
         List<MultiAgentSystem> availableAgents = allAgents
-            .Where(a => a != this && a.IsAvailableForAssignment())
+            .Where(a => a != this && a.IsGuard && a.IsAvailableForAssignment()) // <- Añadir a.IsGuard
             .ToList();
 
         // 2. Asignación priorizada
@@ -422,14 +439,12 @@ public abstract class MultiAgentSystem : MonoBehaviour
         ACLMessage message = new ACLMessage(performative, this.gameObject, receiver, content, protocol, "guard_communication");
         receiver.GetComponent<MultiAgentSystem>().ReceiveACLMessage(message);
     }
-    
+
     protected void InformAgentsAboutPlayer(Vector3 playerPosition)
     {
-        string content = $"{playerPosition.x.ToString("F4", System.Globalization.CultureInfo.InvariantCulture)};" +
-                        $"{playerPosition.y.ToString("F4", System.Globalization.CultureInfo.InvariantCulture)};" +
-                        $"{playerPosition.z.ToString("F4", System.Globalization.CultureInfo.InvariantCulture)}";
+        string content = $"{playerPosition.x:F4};{playerPosition.y:F4};{playerPosition.z:F4}";
 
-        foreach (MultiAgentSystem otherAgent in allAgents)
+        foreach (MultiAgentSystem otherAgent in allAgents.Where(a => a.IsGuard)) // Solo a guardias
         {
             if (otherAgent != this && otherAgent.role == "chase")
             {

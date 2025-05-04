@@ -2,6 +2,7 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.AI;
 using System.Linq;
+using System.Globalization;
 
 public class GuardScript : MultiAgentSystem
 {
@@ -16,6 +17,8 @@ public class GuardScript : MultiAgentSystem
 
     public GameObject gameOverCanvas;
     public GameObject winCanvas;
+
+    public override bool IsGuard => true;
 
     private NavMeshAgent agent;
     private int currentPatrolIndex = 0;
@@ -38,9 +41,9 @@ public class GuardScript : MultiAgentSystem
 
     private bool guardingTreasure = false;
 
-    // Varibles puntos de bloqueo
-    [Header("Puntos estratégicos")]
-    public Transform[] blockages;
+    // // Varibles puntos de bloqueo
+    // [Header("Puntos estratégicos")]
+    // public Transform[] blockages;
     private bool guardingBlockage = false;
 
     public Transform GetPlayerPosition()
@@ -122,19 +125,6 @@ public class GuardScript : MultiAgentSystem
             bool playerHasTreasure = player.GetComponent<Movement>().hasTreasure;
             TryBecomeCoordinator(playerHasTreasure); // <- Aquí se envía la información  
 
-            // if (!isCoordinator && currentCoordinator == null)
-            // {
-            //     TryBecomeCoordinator();
-            // }
-
-            // if (isCoordinator && !auctionStarted)
-            // {
-            //     HandlePlayerDetection();
-            // }
-            // else if (!isCoordinator && role == "chase")
-            // {
-            //     Chase();
-            // }
         }
         else
         {
@@ -420,33 +410,6 @@ public class GuardScript : MultiAgentSystem
         }
     }
 
-    // private void HandlePlayerDetection()
-    // {
-    //     if (!auctionStarted)
-    //     {
-    //         // Actualizar primero el estado del tesoro
-    //         Movement playerMovement = player?.GetComponent<Movement>();
-    //         if (playerMovement != null && playerMovement.hasTreasure)
-    //         {
-    //             MultiAgentSystem.PlayerHasTreasure = true; // <-- Actualización temprana
-    //             sawPlayerWithTreasure = true;
-    //         }
-
-    //         // Luego iniciar subasta
-    //         auctionStarted = true;
-    //         lastKnownPlayerPosition = player.position;
-
-    //         if (!isCoordinator && currentCoordinator == null)
-    //         {
-    //             TryBecomeCoordinator();
-    //         }
-    //         else if (isCoordinator)
-    //         {
-    //             StartAuction(lastKnownPlayerPosition);
-    //         }
-    //     }
-    // }
-
     private void HandlePlayerDetection()
     {
         if (!auctionStarted)
@@ -464,11 +427,6 @@ public class GuardScript : MultiAgentSystem
         }
     }
 
-    // private IEnumerator StartAuctionWithDelay(Vector3 playerPos)
-    // {
-    //     yield return null; // Esperar 1 frame para asegurar que PlayerHasTreasure se actualizó
-    //     StartAuction(playerPos);
-    // }
 
     void PlayerCaptured()
     {
@@ -508,31 +466,45 @@ public class GuardScript : MultiAgentSystem
 
     public override void ReceiveACLMessage(ACLMessage message)
     {
-        // LLamamos a la lógica base para procesar el mensaje
         base.ReceiveACLMessage(message);
 
-        // Detectamos los avisos de la camara
-        if (message.Performative == "inform" && message.Protocol == "camera_alert")
+        if (message.Performative == "camera_alert" && message.Protocol == "camera_protocol")
         {
-            // Parseamos la ultima posición conocida del jugador
             try
             {
+                // 1. Actualizar la última posición conocida
                 lastKnownPlayerPosition = ParsePosition(message.Content);
+                Debug.Log($"{name} recibió alerta de cámara. Posición: {lastKnownPlayerPosition}");
+
+                // 2. Enviar INFORM a TODOS los agentes (igual que en chase)
+                string content = $"{lastKnownPlayerPosition.x.ToString("F4", CultureInfo.InvariantCulture)};" +
+                                $"{lastKnownPlayerPosition.y.ToString("F4", CultureInfo.InvariantCulture)};" +
+                                $"{lastKnownPlayerPosition.z.ToString("F4", CultureInfo.InvariantCulture)}";
+
+                foreach (MultiAgentSystem agent in allAgents)
+                {
+                    if (agent != this) // No nos enviamos a nosotros mismos
+                    {
+                        SendACLMessage(
+                            receiver: agent.gameObject,
+                            performative: "inform",
+                            content: content,
+                            protocol: "position_update"
+                        );
+                    }
+                }
+
+                // 3. Lógica de subasta solo si no hay nadie persiguiendo
+                bool someoneChasing = allAgents.Any(a => a.CurrentRole == "chase");
+                if (!someoneChasing && !auctionStarted && currentCoordinator == null)
+                {
+                    bool playerHasTreasure = player.GetComponent<Movement>().hasTreasure;
+                    TryBecomeCoordinator(playerHasTreasure);
+                }
             }
             catch (System.FormatException e)
             {
-                Debug.LogError($"GuardScript: formato inválidio en camara_alert: {e.Message}");
-                return;
-            }
-
-            // Comprobamos si ya hay algún guardia en chase
-            bool someoneChasing = allAgents.Any(agent => agent != this && agent.CurrentRole == "chase");
-
-            // Si nadie está persiguiendo al jugador y no hay coordinador, nos convertimos en coordinador
-            if (!someoneChasing && !auctionStarted && currentCoordinator == null)
-            {
-                bool playerHasIt = player.GetComponent<Movement>().hasTreasure;
-                TryBecomeCoordinator(playerHasIt);
+                Debug.LogError($"Error al parsear posición de cámara: {e.Message}");
             }
         }
     }
