@@ -101,7 +101,7 @@ public abstract class MultiAgentSystem : MonoBehaviour
     
     public bool IsAvailableForAssignment() 
     {
-        return (role == "patrol" || role == "idle");
+        return (role != "chase");
     }
     
     public virtual void AssignRole(string newRole) 
@@ -276,7 +276,7 @@ public abstract class MultiAgentSystem : MonoBehaviour
         if (allAgents == null || allAgents.Count == 0) return;
 
         List<MultiAgentSystem> availableAgents = allAgents
-            .Where(a => a != this && a.IsGuard && a.IsAvailableForAssignment()) // <- Añadir a.IsGuard
+            .Where(a => a != this && a.IsGuard && a.CurrentRole != "chase")
             .ToList();
 
         // 2. Asignación priorizada

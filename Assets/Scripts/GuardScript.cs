@@ -114,14 +114,14 @@ public class GuardScript : MultiAgentSystem
             return;
         }
 
-        if ((visionSensor.CanSeePlayer() || hearingSensor.CanHearPlayer())
-            && !rolesAssigned && !auctionStarted && currentCoordinator == null)
+        if ((visionSensor.CanSeePlayer() || hearingSensor.CanHearPlayer()) 
+            && !auctionStarted 
+            && !rolesAssigned
+            && currentCoordinator == null)
         {
-            // Guarda la última posición conocida
             lastKnownPlayerPosition = player.position;
-            bool playerHasTreasure = player.GetComponent<Movement>().hasTreasure;
-            TryBecomeCoordinator(playerHasTreasure); // <- Aquí se envía la información  
-
+            bool hasTreasure = player.GetComponent<Movement>().hasTreasure;
+            TryBecomeCoordinator(hasTreasure);
         }
         else
         {
@@ -181,6 +181,7 @@ public class GuardScript : MultiAgentSystem
     public override void AssignRole(string newRole) 
     {
         base.AssignRole(newRole);
+        agent.isStopped = false;
         
         switch (newRole)
         {
@@ -342,27 +343,60 @@ public class GuardScript : MultiAgentSystem
         }
     }
 
+    // IEnumerator SearchLastKnownPosition()
+    // {
+    //     searchingLastPosition = true;
+    //     agent.SetDestination(lastKnownPlayerPosition);
+
+    //     // Esperamos a que llegue al destino
+    //     while (agent.pathPending || agent.remainingDistance > 1f)
+    //     {
+    //         yield return null;
+    //     }
+
+    //     // Ya llegó a la última posición conocida
+    //     Debug.Log($"{name} ha llegado a la última posición conocida del jugador.");
+
+    //     // Si no hay una subasta en curso, iniciar una nueva
+    //     if (!auctionStarted && currentCoordinator == null)
+    //     {
+    //         bool hasTreasure = player.GetComponent<Movement>()?.hasTreasure ?? false;
+    //         Debug.Log($"{name} inicia subasta tras perder al jugador.");
+    //         TryBecomeCoordinator(hasTreasure);
+    //     }
+
+    //     searchingLastPosition = false;
+    // }
+
+
     IEnumerator SearchLastKnownPosition()
     {
         searchingLastPosition = true;
         agent.SetDestination(lastKnownPlayerPosition);
 
-        yield return new WaitForSeconds(lostPlayerWaitTime);
-
-        if (!hasLoggedTreasureCheck) // Solo imprime una vez
+        // Esperamos a que llegue al destino
+        while (agent.pathPending || agent.remainingDistance > 1f)
         {
-            if (sawPlayerWithTreasure)
+            yield return null;
+        }
+
+        // Ya llegó a la última posición conocida
+        Debug.Log($"{name} ha llegado a la última posición conocida del jugador.");
+
+        // Verificamos si esta posición ya se usó para lanzar una subasta
+        if (!auctionStarted && currentCoordinator == null)
+        {
+            if (lastAuctionPosition == null || Vector3.Distance(lastAuctionPosition.Value, lastKnownPlayerPosition) > 0.5f)
             {
-                Debug.Log("Guardia perdió de vista al jugador con el tesoro. Va a la salida.");
-                agent.SetDestination(ExitLocation.position);
+                bool hasTreasure = player.GetComponent<Movement>()?.hasTreasure ?? false;
+                Debug.Log($"{name} inicia subasta tras perder al jugador en una nueva posición.");
+                lastAuctionPosition = lastKnownPlayerPosition; // Registrar esta ubicación
+                TryBecomeCoordinator(hasTreasure);
             }
             else
             {
-                Debug.Log("Guardia va a revisar el tesoro.");
-                checkingTreasure = true;
-                agent.SetDestination(TreasureLocation.position);
+                Debug.Log($"{name} ya hizo subasta desde esta posición. No repite.");
             }
-            hasLoggedTreasureCheck = true;
         }
 
         searchingLastPosition = false;
@@ -387,46 +421,84 @@ public class GuardScript : MultiAgentSystem
         agent.SetDestination(ExitLocation.position);
     }
 
+    // void CheckTreasure()
+    // {
+        
+    //     if (agent.pathPending || agent.remainingDistance >= 1f)
+    //     {
+    //         hasCheckedTreasure = false;
+    //         return;
+    //     }
+
+    //     if (!hasCheckedTreasure)
+    //     {
+    //         Movement playerMovement = player.GetComponent<Movement>();
+    //         bool treasureIsGone = !TreasureLocation.gameObject.activeInHierarchy;
+
+    //         // Si el tesoro ha sido robado o el jugador tiene el tesoro, no seguir verificando
+    //         if (treasureIsGone || (playerMovement != null && playerMovement.hasTreasure))
+    //         {
+    //             // Solo si no se ha marcado que el tesoro ha sido robado por otro guardia
+    //             if (!MultiAgentSystem.PlayerHasTreasure)
+    //             {
+    //                 MultiAgentSystem.PlayerHasTreasure = true;
+    //                 Debug.Log("¡El tesoro ha sido robado!");
+    //                 if (playerMovement != null && playerMovement.hasTreasure)
+    //                 {
+    //                     Debug.Log("El guardia vio al jugador con el tesoro!");
+    //                 }
+    //                 else
+    //                 {
+    //                     Debug.Log("El guardia confirmó que el tesoro fue robado!");
+    //                 }
+
+    //                 GoToStrategicPoint(); // Dirige al guardia a un punto estratégico, no al tesoro
+    //             }
+    //         }
+    //         else
+    //         {
+    //             Debug.Log("El tesoro está seguro. Vigilando...");
+    //             guardingTreasure = true;
+    //             agent.isStopped = true;
+    //         }
+
+    //         hasCheckedTreasure = true;
+    //     }
+    // }
+
     void CheckTreasure()
     {
-        if (agent.pathPending || agent.remainingDistance >= 1f)
+        // Verificación continua incluso si está vigilando
+        if (visionSensor.CanSeePlayer() || hearingSensor.CanHearPlayer())
         {
-            hasCheckedTreasure = false;
+            Debug.Log("¡Jugador detectado cerca del tesoro! Iniciando subasta...");
+            lastKnownPlayerPosition = player.position;
+            TryBecomeCoordinator(player.GetComponent<Movement>().hasTreasure);
             return;
         }
 
+        if (agent.pathPending || agent.remainingDistance >= 1f) return;
+
+        // Lógica original de verificación del tesoro
         if (!hasCheckedTreasure)
         {
             Movement playerMovement = player.GetComponent<Movement>();
             bool treasureIsGone = !TreasureLocation.gameObject.activeInHierarchy;
 
-            // Si el tesoro ha sido robado o el jugador tiene el tesoro, no seguir verificando
             if (treasureIsGone || (playerMovement != null && playerMovement.hasTreasure))
             {
-                // Solo si no se ha marcado que el tesoro ha sido robado por otro guardia
                 if (!MultiAgentSystem.PlayerHasTreasure)
                 {
                     MultiAgentSystem.PlayerHasTreasure = true;
-                    Debug.Log("¡El tesoro ha sido robado!");
-                    if (playerMovement != null && playerMovement.hasTreasure)
-                    {
-                        Debug.Log("El guardia vio al jugador con el tesoro!");
-                    }
-                    else
-                    {
-                        Debug.Log("El guardia confirmó que el tesoro fue robado!");
-                    }
-
-                    GoToStrategicPoint(); // Dirige al guardia a un punto estratégico, no al tesoro
+                    Debug.Log("¡Tesoro robado! Iniciando subasta...");
+                    TryBecomeCoordinator(true);
                 }
             }
             else
             {
-                Debug.Log("El tesoro está seguro. Vigilando...");
-                guardingTreasure = true;
+                Debug.Log("Vigilando tesoro...");
                 agent.isStopped = true;
             }
-
             hasCheckedTreasure = true;
         }
     }
