@@ -1,106 +1,111 @@
-// using System.Collections;
-// using UnityEngine;
-// using UnityEngine.AI;
-// using System.Globalization;
+using System.Collections;
+using UnityEngine;
+using UnityEngine.AI;
+using System.Globalization;
 
-// public class CameraAgent : MultiAgentSystem
-// {
-//     [Header("Visión")]
-//     public float viewDistance = 20f;
-//     [Range(0f, 180f)]
-//     public float viewAngle = 90f;
-//     public LayerMask obstructionMask;
+public class CameraAgent : MultiAgentSystem
+{
+    [Header("Visión")]
+    public float viewDistance = 20f;
+    [Range(0f, 180f)]
+    public float viewAngle = 90f;
+    public LayerMask obstructionMask;
 
-//     // Cada cuánto reevalúa
-//     public float checkInterval = 0.5f;
+    // Cada cuánto reevalúa
+    public float checkInterval = 0.5f;
 
-//     private Transform playerTransform;
-//     private bool playerInSight = false;
+    private Transform playerTransform;
+    private bool playerInSight = false;
 
-//     // Implementación abstracta (no relevante para camera)
-//     protected override (float, float, float) CalculateDistances(Vector3 playerPosition)
-//     {
-//         // Cameras no hacen pujjas
-//         float dist = Vector3.Distance(transform.position, playerPosition);
-//         return (dist, dist, dist);
-//     }
+    // Implementación abstracta (no relevante para camera)
+    protected override (float, float, float) CalculateDistances(Vector3 playerPosition)
+    {
+        // Cameras no hacen pujjas
+        float dist = Vector3.Distance(transform.position, playerPosition);
+        return (dist, dist, dist);
+    }
 
-//     protected override void Start()
-//     {
-//         base.Start();
+    public override void SetTarget(Vector3 targetPosition)
+    {
+        playerTransform.LookAt(targetPosition);
+    }
 
-//         GameObject playerGO = GameObject.FindGameObjectWithTag("Player");
-//         if (playerGO != null)
-//         {
-//             playerTransform = playerGO.transform;
-//             StartCoroutine(PeriodicCheck());
-//         }
-//         else
-//         {
-//             Debug.LogError("CameraAgent: No se encontró el objeto del jugador con tag 'Player'.");
-//             enabled = false;
-//         }
-//     }
+    protected override void Start()
+    {
+        base.Start();
 
-//     IEnumerator PeriodicCheck()
-//     {
-//         while (true)
-//         {
-//             yield return new WaitForSeconds(checkInterval);
-//             CheckForPlayer();
-//         }
-//     }
+        GameObject playerGO = GameObject.FindGameObjectWithTag("Player");
+        if (playerGO != null)
+        {
+            playerTransform = playerGO.transform;
+            StartCoroutine(PeriodicCheck());
+        }
+        else
+        {
+            Debug.LogError("CameraAgent: No se encontró el objeto del jugador con tag 'Player'.");
+            enabled = false;
+        }
+    }
 
-//     void CheckForPlayer()
-//     {
-//         if (playerTransform == null) return;
+    IEnumerator PeriodicCheck()
+    {
+        while (true)
+        {
+            yield return new WaitForSeconds(checkInterval);
+            CheckForPlayer();
+        }
+    }
 
-//         Vector3 dirToPlayer = (playerTransform.position - transform.position).normalized;
-//         float distToPlayer = Vector3.Distance(transform.position, playerTransform.position);
+    void CheckForPlayer()
+    {
+        if (playerTransform == null) return;
 
-//         // Comprueba ángulo y distancia
-//         float angle = Vector3.Angle(transform.forward, dirToPlayer);
-//         if (angle > viewAngle * 0.5f || distToPlayer > viewDistance)
-//         {
-//             playerInSight = false;
-//             return;
-//         }
+        Vector3 dirToPlayer = (playerTransform.position - transform.position).normalized;
+        float distToPlayer = Vector3.Distance(transform.position, playerTransform.position);
 
-//         // Comprueba obstrucción
-//         if (!Physics.Raycast(transform.position, dirToPlayer, distToPlayer, obstructionMask))
-//         {
-//             if (!playerInSight)
-//             {
-//                 playerInSight = true;
-//                 OnPlayerSpotted();
-//             }
-//         }
-//         else
-//         {
-//             playerInSight = false;
-//         }
-//     }
+        // Comprueba ángulo y distancia
+        float angle = Vector3.Angle(transform.forward, dirToPlayer);
+        if (angle > viewAngle * 0.5f || distToPlayer > viewDistance)
+        {
+            playerInSight = false;
+            return;
+        }
 
-//     void OnPlayerSpotted()
-//     {
-//         Vector3 pos = playerTransform.position;
-//         string content = string.Format(CultureInfo.InvariantCulture, "{0:F3};{1:F3};{2:F3}",
-//             pos.x, pos.y, pos.z);
+        // Comprueba obstrucción
+        if (!Physics.Raycast(transform.position, dirToPlayer, distToPlayer, obstructionMask))
+        {
+            if (!playerInSight)
+            {
+                playerInSight = true;
+                OnPlayerSpotted();
+            }
+        }
+        else
+        {
+            playerInSight = false;
+        }
+    }
 
-//         // Usar SendACLMessage heredado para avisar a todos los agentes
-//         foreach (var agent in allAgents)
-//         {
-//             if (agent != this)
-//             {
-//                 SendACLMessage(
-//                     receiver: agent.gameObject,
-//                     performative: "inform",
-//                     content: content,
-//                     protocol: "camera_alert"
-//                 );
-//             }
-//         }
+    void OnPlayerSpotted()
+    {
+        Vector3 pos = playerTransform.position;
+        string content = string.Format(CultureInfo.InvariantCulture, "{0:F3};{1:F3};{2:F3}",
+            pos.x, pos.y, pos.z);
 
-//         Debug.Log($"({name}) vio al jugador y avisó a {allAgents.Count - 1} agentes.");
-//     }
-// }
+        // Usar SendACLMessage heredado para avisar a todos los agentes
+        foreach (var agent in allAgents)
+        {
+            if (agent != this)
+            {
+                SendACLMessage(
+                    receiver: agent.gameObject,
+                    performative: "inform",
+                    content: content,
+                    protocol: "camera_alert"
+                );
+            }
+        }
+
+        Debug.Log($"({name}) vio al jugador y avisó a {allAgents.Count - 1} agentes.");
+    }
+}

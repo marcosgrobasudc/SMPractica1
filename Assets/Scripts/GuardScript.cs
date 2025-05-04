@@ -1,8 +1,7 @@
-
-
 using System.Collections;
 using UnityEngine;
 using UnityEngine.AI;
+using System.Linq;
 
 public class GuardScript : MultiAgentSystem
 {
@@ -43,7 +42,6 @@ public class GuardScript : MultiAgentSystem
     [Header("Puntos estratégicos")]
     public Transform[] blockages;
     private bool guardingBlockage = false;
-
 
     public Transform GetPlayerPosition()
     {
@@ -177,7 +175,6 @@ public class GuardScript : MultiAgentSystem
         }
     }
 
-    
     public override void AssignRole(string newRole) 
     {
         base.AssignRole(newRole);
@@ -212,12 +209,6 @@ public class GuardScript : MultiAgentSystem
                 break;
         }
     }
-
-    // public void SetTarget(Vector3 targetPosition) 
-    // {
-    //     agent.SetDestination(targetPosition);
-    // }
-
 
     void Chase()
     {
@@ -265,7 +256,6 @@ public class GuardScript : MultiAgentSystem
             StartCoroutine(SearchLastKnownPosition());
         }
     }
-
 
     void Patrol()
     {
@@ -430,8 +420,6 @@ public class GuardScript : MultiAgentSystem
         }
     }
 
-
-
     // private void HandlePlayerDetection()
     // {
     //     if (!auctionStarted)
@@ -482,7 +470,6 @@ public class GuardScript : MultiAgentSystem
     //     StartAuction(playerPos);
     // }
 
-
     void PlayerCaptured()
     {
         Time.timeScale = 0f;
@@ -518,4 +505,36 @@ public class GuardScript : MultiAgentSystem
             }
         }
     }
+
+    public override void ReceiveACLMessage(ACLMessage message)
+    {
+        // LLamamos a la lógica base para procesar el mensaje
+        base.ReceiveACLMessage(message);
+
+        // Detectamos los avisos de la camara
+        if (message.Performative == "inform" && message.Protocol == "camera_alert")
+        {
+            // Parseamos la ultima posición conocida del jugador
+            try
+            {
+                lastKnownPlayerPosition = ParsePosition(message.Content);
+            }
+            catch (System.FormatException e)
+            {
+                Debug.LogError($"GuardScript: formato inválidio en camara_alert: {e.Message}");
+                return;
+            }
+
+            // Comprobamos si ya hay algún guardia en chase
+            bool someoneChasing = allAgents.Any(agent => agent != this && agent.CurrentRole == "chase");
+
+            // Si nadie está persiguiendo al jugador y no hay coordinador, nos convertimos en coordinador
+            if (!someoneChasing && !auctionStarted && currentCoordinator == null)
+            {
+                bool playerHasIt = player.GetComponent<Movement>().hasTreasure;
+                TryBecomeCoordinator(playerHasIt);
+            }
+        }
+    }
+
 }

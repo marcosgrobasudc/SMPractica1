@@ -1,197 +1,3 @@
-// using System;
-// using System.Collections;
-// using System.Collections.Generic;
-// using UnityEngine;
-
-// public class MultiAgentSystem : MonoBehaviour
-// {
-//     protected static List<GuardScript> allGuards = new List<GuardScript>();
-//     protected static GuardScript currentCoordinator;
-
-//     protected bool isCoordinator = false;
-//     protected bool auctionStarted = false;
-//     protected bool rolesAssigned = false;
-
-//     protected List<ACLMessage> mailbox = new List<ACLMessage>();
-//     protected Dictionary<GuardScript, (float, float, float)> bids = new Dictionary<GuardScript, (float, float, float)>();
-
-//     protected string role = "patrol";
-
-//     public bool IsCoordinator => isCoordinator;
-
-//     public bool IsAvailableForAssignment() => (role == "patrol" || role == "idle");
-
-//     public void AssignRole(string newRole)
-//     {
-//         role = newRole;
-//         OnRoleAssigned(newRole);
-//     }
-
-//     protected virtual void OnRoleAssigned(string role) { }
-
-//     protected void StartAuction(Vector3 lastKnownPlayerPosition)
-//     {
-//         currentCoordinator = GetComponent<GuardScript>();
-//         isCoordinator = true;
-//         auctionStarted = true;
-
-//         string content = $"{lastKnownPlayerPosition.x},{lastKnownPlayerPosition.y},{lastKnownPlayerPosition.z}";
-
-//         foreach (GuardScript guard in allGuards)
-//         {
-//             if (guard != this)
-//             {
-//                 SendACLMessage(
-//                     receiver: guard.gameObject,
-//                     performative: "REQUEST_BID",
-//                     content: content,
-//                     protocol: "auction"
-//                 );
-//             }
-//         }
-
-//         StartCoroutine(WaitForBids());
-//     }
-
-//     protected IEnumerator WaitForBids()
-//     {
-//         float timeout = 5f;
-//         float elapsed = 0f;
-//         int expectedBids = allGuards.Count - 1;
-
-//         while (elapsed < timeout && bids.Count < expectedBids)
-//         {
-//             elapsed += Time.deltaTime;
-//             yield return null;
-//         }
-
-//         AssignRoles();
-//         currentCoordinator = null;
-//         isCoordinator = false;
-//     }
-
-//     protected void AssignRoles()
-//     {
-//         GuardScript self = GetComponent<GuardScript>();
-//         List<GuardScript> availableGuards = new List<GuardScript>(allGuards);
-//         availableGuards.Remove(self);
-
-//         AssignClosestRole("chase", availableGuards, g => bids[g].Item1);
-//         AssignClosestRole("treasure", availableGuards, g => bids[g].Item2);
-//         AssignClosestRole("exit", availableGuards, g => bids[g].Item3);
-
-//         foreach (GuardScript guard in availableGuards)
-//         {
-//             guard.AssignRole("patrol");
-//         }
-
-//         rolesAssigned = true;
-//         auctionStarted = false;
-//         currentCoordinator = null;
-//         isCoordinator = false;
-//     }
-
-//     protected void AssignClosestRole(string role, List<GuardScript> guards, Func<GuardScript, float> distanceSelector)
-//     {
-//         GuardScript closest = null;
-//         float minDistance = Mathf.Infinity;
-
-//         foreach (GuardScript guard in guards)
-//         {
-//             if (!bids.ContainsKey(guard)) continue;
-
-//             float dist = distanceSelector(guard);
-//             if (dist < minDistance)
-//             {
-//                 minDistance = dist;
-//                 closest = guard;
-//             }
-//         }
-
-//         if (closest != null)
-//         {
-//             closest.AssignRole(role);
-//             guards.Remove(closest);
-//         }
-//     }
-
-//     public void SendACLMessage(GameObject receiver, string performative, string content, string protocol)
-//     {
-//         if (receiver == null)
-//         {
-//             Debug.LogError("Receptor nulo");
-//             return;
-//         }
-
-//         ACLMessage message = new ACLMessage(performative, this.gameObject, receiver, content, protocol, "guard_communication");
-//         receiver.GetComponent<GuardScript>().ReceiveACLMessage(message);
-//     }
-
-//     public void ReceiveACLMessage(ACLMessage message)
-//     {
-//         Debug.Log($"{name} recibió mensaje '{message.Performative}' de {(message.Sender != null ? message.Sender.name : "null")}");
-
-//         GuardScript self = GetComponent<GuardScript>();
-
-//         if (message.Performative == "REQUEST_BID" && !isCoordinator)
-//         {
-//             Vector3 playerPos = ParsePosition(message.Content);
-//             float playerDist = Vector3.Distance(transform.position, playerPos);
-//             float treasureDist = Vector3.Distance(transform.position, self.treasureLocation.position);
-//             float exitDist = Vector3.Distance(transform.position, self.exitLocation.position);
-
-//             var coord = message.Sender.GetComponent<GuardScript>();
-//             coord?.ReceiveBid(self, playerDist, treasureDist, exitDist);
-//             return;
-//         }
-
-//         if (message.Performative == "ASSIGN_ROLE")
-//         {
-//             AssignRole(message.Content);
-//             if (message.Content == "chase")
-//             {
-//                 self.SetTarget(self.player.position);
-//             }
-//             return;
-//         }
-
-//         mailbox.Add(message);
-//     }
-
-//     protected Vector3 ParsePosition(string positionStr)
-//     {
-//         string[] parts = positionStr.Split(',');
-//         return new Vector3(
-//             float.Parse(parts[0]),
-//             float.Parse(parts[1]),
-//             float.Parse(parts[2])
-//         );
-//     }
-
-//     protected void ProcessMailbox()
-//     {
-//         foreach (ACLMessage message in mailbox)
-//         {
-//             if (message.Performative == "inform")
-//             {
-//                 Vector3 playerPosition = ParsePosition(message.Content);
-//                 Debug.Log($"Recibí la posición del jugador: {playerPosition}");
-//             }
-//         }
-
-//         mailbox.Clear();
-//     }
-
-//     public void ReceiveBid(GuardScript sender, float pDist, float tDist, float eDist)
-//     {
-//         if (isCoordinator && sender != null)
-//         {
-//             bids[sender] = (pDist, tDist, eDist);
-//         }
-//     }
-// }
-
-
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -204,6 +10,7 @@ public abstract class MultiAgentSystem : MonoBehaviour
     // Variables de comunicación multiagente
     protected List<ACLMessage> mailbox = new List<ACLMessage>();
     protected string role = "patrol";
+    public string CurrentRole => role;
     protected bool auctionStarted = false;
     
     // Variables para coordinación de agentes
@@ -328,7 +135,6 @@ public abstract class MultiAgentSystem : MonoBehaviour
         }
     }
     
-
     protected void StartAuction(Vector3 playerLastKnownPos)
     {
         bids.Clear(); // Limpiar ofertas anteriores
@@ -391,7 +197,7 @@ public abstract class MultiAgentSystem : MonoBehaviour
         }
     }
     
-    public void ReceiveACLMessage(ACLMessage message)
+    public virtual void ReceiveACLMessage(ACLMessage message)
     {
         Debug.Log($"{name} recibió mensaje '{message.Performative}' de {(message.Sender != null ? message.Sender.name : "null")}");
 
@@ -418,9 +224,7 @@ public abstract class MultiAgentSystem : MonoBehaviour
 
         mailbox.Add(message);
     }
-    
-
-    
+      
     protected void AssignClosestRole(string role, List<MultiAgentSystem> agents, Func<MultiAgentSystem, float> distanceSelector)
     {
         MultiAgentSystem closest = null;
@@ -553,8 +357,7 @@ public abstract class MultiAgentSystem : MonoBehaviour
             agents.Remove(closest);
         }
     }
-    
-    
+      
     protected void ProcessMailbox()
     {
         foreach (ACLMessage message in mailbox.ToList())  // Usamos ToList() para evitar modificar la colección durante la iteración
@@ -620,7 +423,6 @@ public abstract class MultiAgentSystem : MonoBehaviour
         receiver.GetComponent<MultiAgentSystem>().ReceiveACLMessage(message);
     }
     
-
     protected void InformAgentsAboutPlayer(Vector3 playerPosition)
     {
         string content = $"{playerPosition.x.ToString("F4", System.Globalization.CultureInfo.InvariantCulture)};" +

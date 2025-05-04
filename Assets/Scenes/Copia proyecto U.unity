@@ -16502,7 +16502,7 @@ Transform:
   m_GameObject: {fileID: 1179344932}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -63, y: 22.5, z: 22}
+  m_LocalPosition: {x: 130, y: 22.5, z: -178}
   m_LocalScale: {x: 7, y: 7, z: 7}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -16614,7 +16614,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!20 &1185154995
 Camera:
   m_ObjectHideFlags: 0
@@ -16693,18 +16693,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9f3c94533cfff5f4097284f1031f4655, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  role: patrol
-  auctionStarted: 0
-  isCoordinator: 0
-  rolesAssigned: 0
-  lastKnownPlayerPosition: {x: 0, y: 0, z: 0}
   viewDistance: 100
   viewAngle: 74
   obstructionMask:
+    serializedVersion: 2
     m_Bits: 0
   checkInterval: 0.5
-  playerTransform: {fileID: 0}
-  playerInSight: 0
 --- !u!1001 &1192977382
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -22153,7 +22147,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!20 &1637305902
 Camera:
   m_ObjectHideFlags: 0
@@ -22232,18 +22226,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9f3c94533cfff5f4097284f1031f4655, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  role: patrol
-  auctionStarted: 0
-  isCoordinator: 0
-  rolesAssigned: 0
-  lastKnownPlayerPosition: {x: 0, y: 0, z: 0}
   viewDistance: 20
   viewAngle: 90
   obstructionMask:
+    serializedVersion: 2
     m_Bits: 0
   checkInterval: 0.5
-  playerTransform: {fileID: 0}
-  playerInSight: 0
 --- !u!1001 &1638715621
 PrefabInstance:
   m_ObjectHideFlags: 0
