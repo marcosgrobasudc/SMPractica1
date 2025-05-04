@@ -40,7 +40,7 @@ public class GuardScript : MultiAgentSystem
     private bool guardingTreasure = false;
 
     // Varibles puntos de bloqueo
-    [Header("Puntos estratégicos para atrapar al jugador")]
+    [Header("Puntos estratégicos")]
     public Transform[] blockages;
     private bool guardingBlockage = false;
 
@@ -49,13 +49,23 @@ public class GuardScript : MultiAgentSystem
     {
         return player; // Devuelve la referencia al jugador
     }
-    protected override (float, float, float) CalculateDistances(Vector3 playerPos)
+
+    protected override (float playerDist, float treasureDist, float exitDist) CalculateDistances(Vector3 playerPosition)
     {
+        float treasureDist = MultiAgentSystem.PlayerHasTreasure 
+            ? Mathf.Infinity  // Si el tesoro fue robado, distancia infinita
+            : Vector3.Distance(transform.position, TreasureLocation.position);
+
         return (
-            Vector3.Distance(transform.position, playerPos),
-            Vector3.Distance(transform.position, TreasureLocation.position),
+            Vector3.Distance(transform.position, playerPosition),
+            treasureDist,
             Vector3.Distance(transform.position, ExitLocation.position)
         );
+    }
+
+    public override void SetTarget(Vector3 targetPosition) 
+    {
+        agent.SetDestination(targetPosition);
     }
 
     protected override void Start()
@@ -110,21 +120,23 @@ public class GuardScript : MultiAgentSystem
             && !rolesAssigned && !auctionStarted && currentCoordinator == null)
         {
             // Guarda la última posición conocida
-            lastKnownPlayerPosition = player.position;  
+            lastKnownPlayerPosition = player.position;
+            bool playerHasTreasure = player.GetComponent<Movement>().hasTreasure;
+            TryBecomeCoordinator(playerHasTreasure); // <- Aquí se envía la información  
 
-            if (!isCoordinator && currentCoordinator == null)
-            {
-                TryBecomeCoordinator();
-            }
+            // if (!isCoordinator && currentCoordinator == null)
+            // {
+            //     TryBecomeCoordinator();
+            // }
 
-            if (isCoordinator && !auctionStarted)
-            {
-                HandlePlayerDetection();
-            }
-            else if (!isCoordinator && role == "chase")
-            {
-                Chase();
-            }
+            // if (isCoordinator && !auctionStarted)
+            // {
+            //     HandlePlayerDetection();
+            // }
+            // else if (!isCoordinator && role == "chase")
+            // {
+            //     Chase();
+            // }
         }
         else
         {
@@ -165,34 +177,47 @@ public class GuardScript : MultiAgentSystem
         }
     }
 
+    
     public override void AssignRole(string newRole) 
     {
         base.AssignRole(newRole);
         
-        switch (role)
+        switch (newRole)
         {
             case "chase":
                 agent.speed = chaseSpeed;
+                guardingBlockage = false;
+                guardingTreasure = false;
                 break;
             case "treasure":
                 agent.speed = patrolSpeed;
                 agent.SetDestination(TreasureLocation.position);
+                guardingBlockage = false;
                 break;
             case "exit":
                 agent.speed = patrolSpeed;
                 agent.SetDestination(ExitLocation.position);
+                guardingBlockage = false;
+                break;
+            case "blockage1":
+            case "blockage2":
+                agent.speed = patrolSpeed;
+                guardingBlockage = true;
                 break;
             case "patrol":
                 agent.speed = patrolSpeed;
                 GoToNextPatrolPoint();
+                guardingBlockage = false;
+                guardingTreasure = false;
                 break;
         }
     }
-    
-    public void SetTarget(Vector3 targetPosition) 
-    {
-        agent.SetDestination(targetPosition);
-    }
+
+    // public void SetTarget(Vector3 targetPosition) 
+    // {
+    //     agent.SetDestination(targetPosition);
+    // }
+
 
     void Chase()
     {
@@ -203,15 +228,22 @@ public class GuardScript : MultiAgentSystem
             agent.speed = chaseSpeed;
             agent.SetDestination(player.position);
 
+            // Verificar si el jugador tiene el tesoro
+            Movement playerMovement = player.GetComponent<Movement>();
+            if (playerMovement != null && playerMovement.hasTreasure && !MultiAgentSystem.PlayerHasTreasure)
+            {
+                Debug.Log($"{name} detectó al jugador con el tesoro. PlayerHasTreasure = true");
+                MultiAgentSystem.PlayerHasTreasure = true;
+                InformAgentsAboutPlayer(player.position);
+            }
+
             if (Time.time - lastInformTime > informChaseInterval)
             {
                 lastInformTime = Time.time;
-
-                // Informamos a los demás agentes sobre la posición del jugador
                 string content = $"{lastKnownPlayerPosition.x.ToString("F4").Replace(',', '.')};" +
                                 $"{lastKnownPlayerPosition.y.ToString("F4").Replace(',', '.')};" +
                                 $"{lastKnownPlayerPosition.z.ToString("F4").Replace(',', '.')}";
-
+                // Informar a otros agentes
                 foreach (MultiAgentSystem other in allAgents)
                 {
                     if (other != this)
@@ -225,12 +257,6 @@ public class GuardScript : MultiAgentSystem
                     }
                 }
             }
-
-            Movement playerMovement = player.GetComponent<Movement>();
-            if (playerMovement != null && playerMovement.hasTreasure)
-            {
-                InformAgentsAboutPlayer(player.position);
-            }
         }
         else if (agent.remainingDistance < 1f)
         {
@@ -239,6 +265,7 @@ public class GuardScript : MultiAgentSystem
             StartCoroutine(SearchLastKnownPosition());
         }
     }
+
 
     void Patrol()
     {
@@ -361,50 +388,100 @@ public class GuardScript : MultiAgentSystem
 
     void CheckTreasure()
     {
-        // Si no hemos llegado todavía, toca resetar el flag
         if (agent.pathPending || agent.remainingDistance >= 1f)
         {
             hasCheckedTreasure = false;
             return;
         }
 
-        // Una vez llegamos, chequeamos el tesoro de mi corazón
         if (!hasCheckedTreasure)
         {
             Movement playerMovement = player.GetComponent<Movement>();
+            bool treasureIsGone = !TreasureLocation.gameObject.activeInHierarchy;
 
-            if (playerMovement != null && playerMovement.hasTreasure)
+            // Si el tesoro ha sido robado o el jugador tiene el tesoro, no seguir verificando
+            if (treasureIsGone || (playerMovement != null && playerMovement.hasTreasure))
             {
-                Debug.Log("El guardia revisó el tesoro y no está ahí, buscando punto de bloqueo");
-                GoToStrategicPoint();                   // Buscamos a un punto de bloqueo
-            }
+                // Solo si no se ha marcado que el tesoro ha sido robado por otro guardia
+                if (!MultiAgentSystem.PlayerHasTreasure)
+                {
+                    MultiAgentSystem.PlayerHasTreasure = true;
+                    Debug.Log("¡El tesoro ha sido robado!");
+                    if (playerMovement != null && playerMovement.hasTreasure)
+                    {
+                        Debug.Log("El guardia vio al jugador con el tesoro!");
+                    }
+                    else
+                    {
+                        Debug.Log("El guardia confirmó que el tesoro fue robado!");
+                    }
 
+                    GoToStrategicPoint(); // Dirige al guardia a un punto estratégico, no al tesoro
+                }
+            }
             else
             {
-                Debug.Log("El guardia revisó el tesoro y sigue ahí. Quedándose a vigilar.");
-                guardingTreasure = true;                // Entramos en modo vigilancia
-                agent.isStopped = true;                 // Deja de moverse                
+                Debug.Log("El tesoro está seguro. Vigilando...");
+                guardingTreasure = true;
+                agent.isStopped = true;
             }
 
-            hasCheckedTreasure = true;                  // Solo chequeamos una vez
+            hasCheckedTreasure = true;
         }
     }
+
+
+
+    // private void HandlePlayerDetection()
+    // {
+    //     if (!auctionStarted)
+    //     {
+    //         // Actualizar primero el estado del tesoro
+    //         Movement playerMovement = player?.GetComponent<Movement>();
+    //         if (playerMovement != null && playerMovement.hasTreasure)
+    //         {
+    //             MultiAgentSystem.PlayerHasTreasure = true; // <-- Actualización temprana
+    //             sawPlayerWithTreasure = true;
+    //         }
+
+    //         // Luego iniciar subasta
+    //         auctionStarted = true;
+    //         lastKnownPlayerPosition = player.position;
+
+    //         if (!isCoordinator && currentCoordinator == null)
+    //         {
+    //             TryBecomeCoordinator();
+    //         }
+    //         else if (isCoordinator)
+    //         {
+    //             StartAuction(lastKnownPlayerPosition);
+    //         }
+    //     }
+    // }
 
     private void HandlePlayerDetection()
     {
         if (!auctionStarted)
         {
-            auctionStarted = true;
-            lastKnownPlayerPosition = player.position;
-            sawPlayerWithTreasure = player.GetComponent<Movement>()?.hasTreasure ?? false;
-            AssignRole("chase");
-            SetTarget(lastKnownPlayerPosition);
-        }
-        else
-        {
-            SetTarget(player.position);
+            // 1. Verificar SI el jugador tiene el tesoro ANTES de iniciar subasta
+            Movement playerMovement = player.GetComponent<Movement>();
+            if (playerMovement != null && playerMovement.hasTreasure)
+            {
+                MultiAgentSystem.PlayerHasTreasure = true; // Actualizar estado global
+                Debug.Log($"{name} vio al jugador con el tesoro - Ignorando tesoro en subasta");
+            }
+
+            // 2. Iniciar subasta con retraso de 1 frame (para asegurar sincronización)
+            StartAuction(player.position);
         }
     }
+
+    // private IEnumerator StartAuctionWithDelay(Vector3 playerPos)
+    // {
+    //     yield return null; // Esperar 1 frame para asegurar que PlayerHasTreasure se actualizó
+    //     StartAuction(playerPos);
+    // }
+
 
     void PlayerCaptured()
     {

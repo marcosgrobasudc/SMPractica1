@@ -14,6 +14,9 @@ public class Movement : MonoBehaviour
     private bool isGrounded;
     private bool wasGroundedLastFrame;
 
+    private GameObject currentTreasure;  // Referencia al tesoro actual
+    private Vector3 lastTreasurePosition; // Última posición conocida del tesoro
+
     public bool hasTreasure = false;  // Variable para saber si el jugador tiene el tesoro
 
     private void Start()
@@ -72,5 +75,16 @@ public class Movement : MonoBehaviour
     public bool WasGroundedLastFrame()
     {
         return wasGroundedLastFrame;
+        }
+    
+    
+    public void PickUpTreasure(GameObject treasure)
+    {
+        if (!hasTreasure)
+        {
+            hasTreasure = true;
+            treasure.SetActive(false);
+            MultiAgentSystem.PlayerHasTreasure = true;
+        }
     }
 }
