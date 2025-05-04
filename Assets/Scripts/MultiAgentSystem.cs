@@ -21,6 +21,7 @@ public abstract class MultiAgentSystem : MonoBehaviour
     protected Dictionary<MultiAgentSystem, (float, float, float)> bids = new Dictionary<MultiAgentSystem, (float, float, float)>();
     protected static List<MultiAgentSystem> allAgents = new List<MultiAgentSystem>();
     protected Vector3 lastKnownPlayerPosition;
+    protected Vector3? lastAuctionPosition = null;
 
     public bool IsCoordinator => isCoordinator;
     public virtual bool IsGuard => false;
@@ -121,14 +122,14 @@ public abstract class MultiAgentSystem : MonoBehaviour
         {
             if (currentCoordinator == null)
             {
-                // Actualizar estado global si el jugador tiene el tesoro
+                // Resetear posición de subasta si es guardia (sin casteo)
+                lastAuctionPosition = null;
+                
                 if (playerHasTreasure)
                 {
                     PlayerHasTreasure = true;
-                    // Debug.Log("Coordinador actualizó PlayerHasTreasure");
                 }
 
-                // Convertirse en coordinador e iniciar subasta
                 currentCoordinator = this;
                 isCoordinator = true;
                 AssignRole("chase");
@@ -230,6 +231,25 @@ public abstract class MultiAgentSystem : MonoBehaviour
                     coord.ReceiveBid(this, distances.playerDist, adjustedTreasureDist, distances.exitDist);
                 }
             }
+
+            if (message.Performative == "inform" && message.Protocol == "position_cleared")
+            {
+                try
+                {
+                    Vector3 clearedPos = ParsePosition(message.Content);
+                    if (Vector3.Distance(lastKnownPlayerPosition, clearedPos) < 2f)
+                    {
+                        lastKnownPlayerPosition = Vector3.zero;
+                        Debug.Log($"{name} actualizó: posición {clearedPos} está despejada");
+                    }
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogError($"Error procesando posición despejada: {e.Message}");
+                }
+                return;
+            }
+                         
 
             if (message.Performative == "ASSIGN_ROLE")
             {

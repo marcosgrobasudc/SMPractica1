@@ -31,6 +31,7 @@ public class GuardScript : MultiAgentSystem
     private bool hasReachedExit = false;
     private bool hasCheckedTreasure = false;
     private bool hasLoggedTreasureCheck = false;
+    private bool hasCheckedLastPosition = false;
 
     private VisionSensor visionSensor;
     private HearingSensor hearingSensor;
@@ -214,6 +215,7 @@ public class GuardScript : MultiAgentSystem
                 break;
 
             case "patrol":
+                hasCheckedLastPosition = false; 
                 agent.speed = patrolSpeed;
                 GoToNextPatrolPoint();
                 guardingBlockage = false;
@@ -227,6 +229,7 @@ public class GuardScript : MultiAgentSystem
         if (visionSensor.CanSeePlayer() || hearingSensor.CanHearPlayer())
         {
             chasingPlayer = true;
+            hasCheckedLastPosition = false;
             lastKnownPlayerPosition = player.position;
             agent.speed = chaseSpeed;
             agent.SetDestination(player.position);
@@ -369,37 +372,66 @@ public class GuardScript : MultiAgentSystem
     // }
 
 
+    // IEnumerator SearchLastKnownPosition()
+    // {
+    //     searchingLastPosition = true;
+    //     agent.SetDestination(lastKnownPlayerPosition);
+
+    //     // Esperamos a que llegue al destino
+    //     while (agent.pathPending || agent.remainingDistance > 1f)
+    //     {
+    //         yield return null;
+    //     }
+
+    //     // Ya llegó a la última posición conocida
+    //     Debug.Log($"{name} ha llegado a la última posición conocida del jugador.");
+
+    //     // Verificamos si esta posición ya se usó para lanzar una subasta
+    //     if (!auctionStarted && currentCoordinator == null)
+    //     {
+    //         if (lastAuctionPosition == null || Vector3.Distance(lastAuctionPosition.Value, lastKnownPlayerPosition) > 0.5f)
+    //         {
+    //             bool hasTreasure = player.GetComponent<Movement>()?.hasTreasure ?? false;
+    //             Debug.Log($"{name} inicia subasta tras perder al jugador en una nueva posición.");
+    //             lastAuctionPosition = lastKnownPlayerPosition; // Registrar esta ubicación
+    //             TryBecomeCoordinator(hasTreasure);
+    //         }
+    //         else
+    //         {
+    //             Debug.Log($"{name} ya hizo subasta desde esta posición. No repite.");
+    //         }
+    //     }
+
+    //     searchingLastPosition = false;
+    // }
     IEnumerator SearchLastKnownPosition()
     {
+        if(hasCheckedLastPosition) yield break; // Salir si ya verificamos
+        
         searchingLastPosition = true;
         agent.SetDestination(lastKnownPlayerPosition);
 
-        // Esperamos a que llegue al destino
-        while (agent.pathPending || agent.remainingDistance > 1f)
+        while(agent.pathPending || agent.remainingDistance > 1f)
         {
             yield return null;
         }
 
-        // Ya llegó a la última posición conocida
         Debug.Log($"{name} ha llegado a la última posición conocida del jugador.");
+        hasCheckedLastPosition = true; // Marcar como verificado
 
-        // Verificamos si esta posición ya se usó para lanzar una subasta
-        if (!auctionStarted && currentCoordinator == null)
+        if(!auctionStarted && currentCoordinator == null)
         {
-            if (lastAuctionPosition == null || Vector3.Distance(lastAuctionPosition.Value, lastKnownPlayerPosition) > 0.5f)
-            {
-                bool hasTreasure = player.GetComponent<Movement>()?.hasTreasure ?? false;
-                Debug.Log($"{name} inicia subasta tras perder al jugador en una nueva posición.");
-                lastAuctionPosition = lastKnownPlayerPosition; // Registrar esta ubicación
-                TryBecomeCoordinator(hasTreasure);
-            }
-            else
-            {
-                Debug.Log($"{name} ya hizo subasta desde esta posición. No repite.");
-            }
+            bool hasTreasure = player.GetComponent<Movement>()?.hasTreasure ?? false;
+            TryBecomeCoordinator(hasTreasure);
         }
 
         searchingLastPosition = false;
+        
+        // Volver a patrullar después de verificar
+        if(!visionSensor.CanSeePlayer() && !hearingSensor.CanHearPlayer())
+        {
+            AssignRole("patrol");
+        }
     }
 
     void GoToExit()
