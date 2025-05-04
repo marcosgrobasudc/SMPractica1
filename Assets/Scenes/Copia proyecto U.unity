@@ -3829,6 +3829,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5f469539f129b944c952442e5f00d3e7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  blockages:
+  - {fileID: 1003428115}
+  - {fileID: 757851856}
+  - {fileID: 1385422376}
+  - {fileID: 196916486}
   patrolPoints:
   - {fileID: 974631080}
   - {fileID: 1224223466}
@@ -6004,6 +6009,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5f469539f129b944c952442e5f00d3e7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  blockages:
+  - {fileID: 1003428115}
+  - {fileID: 757851856}
+  - {fileID: 1385422376}
+  - {fileID: 196916486}
   patrolPoints:
   - {fileID: 415474796}
   - {fileID: 1991848741}
@@ -8468,6 +8478,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5f469539f129b944c952442e5f00d3e7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  blockages:
+  - {fileID: 1003428115}
+  - {fileID: 757851856}
+  - {fileID: 1385422376}
+  - {fileID: 196916486}
   patrolPoints:
   - {fileID: 973992513}
   - {fileID: 1687712195}
@@ -8877,6 +8892,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5f469539f129b944c952442e5f00d3e7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  blockages:
+  - {fileID: 1003428115}
+  - {fileID: 757851856}
+  - {fileID: 1385422376}
+  - {fileID: 196916486}
   patrolPoints:
   - {fileID: 1889602651}
   - {fileID: 2141038271}
@@ -16482,7 +16502,7 @@ Transform:
   m_GameObject: {fileID: 1179344932}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 130, y: 22.5, z: -178}
+  m_LocalPosition: {x: -122, y: 22.5, z: -455}
   m_LocalScale: {x: 7, y: 7, z: 7}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -16673,6 +16693,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b48d1e00496b4cb48aba2a507b551030, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  blockages: []
   viewDistance: 200
   viewAngle: 90
   obstructionMask:
@@ -18715,6 +18736,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5f469539f129b944c952442e5f00d3e7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  blockages:
+  - {fileID: 1003428115}
+  - {fileID: 757851856}
+  - {fileID: 1385422376}
+  - {fileID: 196916486}
   patrolPoints:
   - {fileID: 1460696558}
   - {fileID: 1889602651}
@@ -21251,6 +21277,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5f469539f129b944c952442e5f00d3e7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  blockages:
+  - {fileID: 1003428115}
+  - {fileID: 757851856}
+  - {fileID: 1385422376}
+  - {fileID: 196916486}
   patrolPoints:
   - {fileID: 1460696558}
   - {fileID: 274785505}
@@ -22197,6 +22228,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b48d1e00496b4cb48aba2a507b551030, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  blockages: []
   viewDistance: 20
   viewAngle: 90
   obstructionMask:
@@ -26488,6 +26520,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5f469539f129b944c952442e5f00d3e7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  blockages:
+  - {fileID: 1003428115}
+  - {fileID: 757851856}
+  - {fileID: 1385422376}
+  - {fileID: 196916486}
   patrolPoints:
   - {fileID: 274785505}
   - {fileID: 1168806376}

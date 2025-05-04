@@ -26,7 +26,7 @@ public abstract class MultiAgentSystem : MonoBehaviour
     public virtual bool IsGuard => false;
     
     [Header("Puntos estratégicos para atrapar al jugador")]
-    public static Transform[] blockages;
+    public Transform[] blockages;
     // Variables estáticas compartidas por TODOS los agentes
     private static Transform _treasureLocation;
     private static Vector3 _lastKnownTreasurePosition;
@@ -201,7 +201,7 @@ public abstract class MultiAgentSystem : MonoBehaviour
     
     public virtual void ReceiveACLMessage(ACLMessage message)
     {
-        Debug.Log($"{name} recibió mensaje '{message.Performative}' de {(message.Sender != null ? message.Sender.name : "null")}");
+        //Debug.Log($"{name} recibió mensaje '{message.Performative}' de {(message.Sender != null ? message.Sender.name : "null")}");
 
             // Las cámaras ignoran mensajes de subastas
         if (!IsGuard)
@@ -299,8 +299,8 @@ public abstract class MultiAgentSystem : MonoBehaviour
             AssignClosestRole("exit", availableAgents, g => bids[g].Item3);
         }
 
-        // D. Asignar bloqueos estratégicos SOLO si el tesoro fue robado
-        if (PlayerHasTreasure && blockages != null && blockages.Length >= 2 && availableAgents.Count >= 2)
+        // D. Asignar bloqueos estratégicos
+        if (blockages != null && blockages.Length >= 2 && availableAgents.Count >= 2)
         {
             var closestBlockages = blockages
                 .OrderBy(b => Vector3.Distance(b.position, lastKnownPlayerPosition))
@@ -435,7 +435,7 @@ public abstract class MultiAgentSystem : MonoBehaviour
             return;
         }
 
-        Debug.Log(receiver.name);
+        // Debug.Log(receiver.name);
         ACLMessage message = new ACLMessage(performative, this.gameObject, receiver, content, protocol, "guard_communication");
         receiver.GetComponent<MultiAgentSystem>().ReceiveACLMessage(message);
     }

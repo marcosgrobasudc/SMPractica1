@@ -41,9 +41,6 @@ public class GuardScript : MultiAgentSystem
 
     private bool guardingTreasure = false;
 
-    // // Varibles puntos de bloqueo
-    // [Header("Puntos estratégicos")]
-    // public Transform[] blockages;
     private bool guardingBlockage = false;
 
     public Transform GetPlayerPosition()
@@ -142,6 +139,22 @@ public class GuardScript : MultiAgentSystem
                 case "exit":
                     GoToExit();
                     break;
+                case "blockage1":
+                    if (!guardingBlockage)
+                    {
+                        // Llegó al punto, se queda vigilando
+                        guardingBlockage = true;
+                        agent.isStopped = true;
+                    }
+                    break;
+                case "blockage2":
+                    if (!guardingBlockage)
+                    {
+                        // Llegó al punto, se queda vigilando
+                        guardingBlockage = true;
+                        agent.isStopped = true;
+                    }
+                    break; 
                 default:
                     Debug.LogWarning($"Rol desconocido: {role}");
                     break;
@@ -176,21 +189,29 @@ public class GuardScript : MultiAgentSystem
                 guardingBlockage = false;
                 guardingTreasure = false;
                 break;
+
             case "treasure":
                 agent.speed = patrolSpeed;
                 agent.SetDestination(TreasureLocation.position);
                 guardingBlockage = false;
                 break;
+
             case "exit":
                 agent.speed = patrolSpeed;
                 agent.SetDestination(ExitLocation.position);
                 guardingBlockage = false;
                 break;
+
             case "blockage1":
+                agent.speed = patrolSpeed;
+                guardingBlockage = true;
+                break;
+
             case "blockage2":
                 agent.speed = patrolSpeed;
                 guardingBlockage = true;
                 break;
+
             case "patrol":
                 agent.speed = patrolSpeed;
                 GoToNextPatrolPoint();
@@ -426,7 +447,6 @@ public class GuardScript : MultiAgentSystem
             StartAuction(player.position);
         }
     }
-
 
     void PlayerCaptured()
     {
