@@ -12,11 +12,8 @@ public class NoisyDoor : MonoBehaviour
         soundEmitter.soundRadius = 7f;
         soundEmitter.soundDuration = 2f;
     }
-
     public void OpenDoor()
     {
-        // Lógica para abrir la puerta
-        // ...
         soundEmitter.EmitSound();
     }
 }

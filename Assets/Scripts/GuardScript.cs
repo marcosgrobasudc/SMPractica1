@@ -41,8 +41,13 @@ public class GuardScript : MultiAgentSystem
     private float lastInformTime = 0f;
 
     private bool guardingTreasure = false;
-
     private bool guardingBlockage = false;
+
+    // Variables para la lógica de las puertas
+    private bool justPassedDoor = false;
+    private float doorPassGracePeriod = 2f;
+    private int doorConfirmations = 0;
+    private float doorResponseTimeout = 0.5f;
 
     public Transform GetPlayerPosition()
     {
@@ -113,6 +118,18 @@ public class GuardScript : MultiAgentSystem
             Debug.LogError("Falta una referencia crítica: player, visionSensor o hearingSensor.");
             enabled = false;
             return;
+        }
+
+        // Escuchamos algo pero no vemos al jugador
+        if (!visionSensor.CanSeePlayer() && hearingSensor.CanHearPlayer()
+            && !rolesAssigned && !auctionStarted && currentCoordinator == null && !justPassedDoor)
+        {
+            // Comprobamos que no hemos pasado por una puerta
+            Debug.Log($"{name} escuchó un sonido sospechoso, pero no pasó por una puerta.");
+            // Preguntamos a mis compañeros si han pasado por alguna puerta
+            BroadcastDoorInquiry();
+            // Cambiamos de estado para no volver a preguntar inmediatamente
+            rolesAssigned = true;
         }
 
         if ((visionSensor.CanSeePlayer() || hearingSensor.CanHearPlayer()) 
@@ -346,64 +363,6 @@ public class GuardScript : MultiAgentSystem
         }
     }
 
-    // IEnumerator SearchLastKnownPosition()
-    // {
-    //     searchingLastPosition = true;
-    //     agent.SetDestination(lastKnownPlayerPosition);
-
-    //     // Esperamos a que llegue al destino
-    //     while (agent.pathPending || agent.remainingDistance > 1f)
-    //     {
-    //         yield return null;
-    //     }
-
-    //     // Ya llegó a la última posición conocida
-    //     Debug.Log($"{name} ha llegado a la última posición conocida del jugador.");
-
-    //     // Si no hay una subasta en curso, iniciar una nueva
-    //     if (!auctionStarted && currentCoordinator == null)
-    //     {
-    //         bool hasTreasure = player.GetComponent<Movement>()?.hasTreasure ?? false;
-    //         Debug.Log($"{name} inicia subasta tras perder al jugador.");
-    //         TryBecomeCoordinator(hasTreasure);
-    //     }
-
-    //     searchingLastPosition = false;
-    // }
-
-
-    // IEnumerator SearchLastKnownPosition()
-    // {
-    //     searchingLastPosition = true;
-    //     agent.SetDestination(lastKnownPlayerPosition);
-
-    //     // Esperamos a que llegue al destino
-    //     while (agent.pathPending || agent.remainingDistance > 1f)
-    //     {
-    //         yield return null;
-    //     }
-
-    //     // Ya llegó a la última posición conocida
-    //     Debug.Log($"{name} ha llegado a la última posición conocida del jugador.");
-
-    //     // Verificamos si esta posición ya se usó para lanzar una subasta
-    //     if (!auctionStarted && currentCoordinator == null)
-    //     {
-    //         if (lastAuctionPosition == null || Vector3.Distance(lastAuctionPosition.Value, lastKnownPlayerPosition) > 0.5f)
-    //         {
-    //             bool hasTreasure = player.GetComponent<Movement>()?.hasTreasure ?? false;
-    //             Debug.Log($"{name} inicia subasta tras perder al jugador en una nueva posición.");
-    //             lastAuctionPosition = lastKnownPlayerPosition; // Registrar esta ubicación
-    //             TryBecomeCoordinator(hasTreasure);
-    //         }
-    //         else
-    //         {
-    //             Debug.Log($"{name} ya hizo subasta desde esta posición. No repite.");
-    //         }
-    //     }
-
-    //     searchingLastPosition = false;
-    // }
     IEnumerator SearchLastKnownPosition()
     {
         if(hasCheckedLastPosition) yield break; // Salir si ya verificamos
@@ -452,51 +411,6 @@ public class GuardScript : MultiAgentSystem
         agent.speed = patrolSpeed;
         agent.SetDestination(ExitLocation.position);
     }
-
-    // void CheckTreasure()
-    // {
-        
-    //     if (agent.pathPending || agent.remainingDistance >= 1f)
-    //     {
-    //         hasCheckedTreasure = false;
-    //         return;
-    //     }
-
-    //     if (!hasCheckedTreasure)
-    //     {
-    //         Movement playerMovement = player.GetComponent<Movement>();
-    //         bool treasureIsGone = !TreasureLocation.gameObject.activeInHierarchy;
-
-    //         // Si el tesoro ha sido robado o el jugador tiene el tesoro, no seguir verificando
-    //         if (treasureIsGone || (playerMovement != null && playerMovement.hasTreasure))
-    //         {
-    //             // Solo si no se ha marcado que el tesoro ha sido robado por otro guardia
-    //             if (!MultiAgentSystem.PlayerHasTreasure)
-    //             {
-    //                 MultiAgentSystem.PlayerHasTreasure = true;
-    //                 Debug.Log("¡El tesoro ha sido robado!");
-    //                 if (playerMovement != null && playerMovement.hasTreasure)
-    //                 {
-    //                     Debug.Log("El guardia vio al jugador con el tesoro!");
-    //                 }
-    //                 else
-    //                 {
-    //                     Debug.Log("El guardia confirmó que el tesoro fue robado!");
-    //                 }
-
-    //                 GoToStrategicPoint(); // Dirige al guardia a un punto estratégico, no al tesoro
-    //             }
-    //         }
-    //         else
-    //         {
-    //             Debug.Log("El tesoro está seguro. Vigilando...");
-    //             guardingTreasure = true;
-    //             agent.isStopped = true;
-    //         }
-
-    //         hasCheckedTreasure = true;
-    //     }
-    // }
 
     void CheckTreasure()
     {
@@ -552,6 +466,24 @@ public class GuardScript : MultiAgentSystem
         }
     }
 
+    // Método para preguntar si alguien pasó por una puerta
+    private void BroadcastDoorInquiry()
+    {
+        foreach (var other in allAgents.Where(a => a.IsGuard && a != this))
+        {
+            SendACLMessage(
+                receiver: other.gameObject,
+                performative: "ASK_DOOR",
+                content: "¿Brother has pasado por alguna puerta?",
+                protocol: "door_check"
+            );
+        }
+
+        // Preparamos lista para recoger confirmaciones
+        doorConfirmations = 0;
+        StartCoroutine(WaitForDoorResponses());
+    }
+
     void PlayerCaptured()
     {
         Time.timeScale = 0f;
@@ -569,6 +501,13 @@ public class GuardScript : MultiAgentSystem
 
     void OnTriggerEnter(Collider other)
     {
+        if (other.CompareTag("Door"))
+        {
+            Debug.Log($"{name} pasó por la puerta.");
+            justPassedDoor = true;
+            StartCoroutine(ResetJustPassedDoor());
+        }
+
         if (other.CompareTag("Player"))
         {
             Debug.Log("¡El jugador fue capturado!");
@@ -588,10 +527,39 @@ public class GuardScript : MultiAgentSystem
         }
     }
 
+    private IEnumerator ResetJustPassedDoor()
+    {
+        yield return new WaitForSeconds(doorPassGracePeriod);
+        justPassedDoor = false;
+    }
+
+    private IEnumerator WaitForDoorResponses()
+    {
+        float elapsed = 0f;
+        while (elapsed < doorResponseTimeout)
+        {
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        if (doorConfirmations > 0)
+        {
+            // Al menos uno respondió que sí, ignoramos este sonido
+            Debug.Log($"{name}: sonido de puerta confirmado por compañero, lo ignoro.");
+        }
+        else
+        {
+            // Nadie pasó por puerta → tratar como sonido “sospechoso”
+            // Debug.Log($"{name}: nadie pasó por puerta, ¡investigo!");
+            // AssignRole("chase");   // o lanzo subasta, o voy a lastKnownPlayerPosition
+        }
+    }
+
     public override void ReceiveACLMessage(ACLMessage message)
     {
         base.ReceiveACLMessage(message);
 
+        // Si me llega un inform de una camara, aviso al resto de los agentes
         if (message.Performative == "camera_alert" && message.Protocol == "camera_protocol")
         {
             try
@@ -631,6 +599,33 @@ public class GuardScript : MultiAgentSystem
                 Debug.LogError($"Error al parsear posición de cámara: {e.Message}");
             }
         }
+
+        if (message.Performative == "ASK_DOOR" && message.Protocol == "door_check")
+        {
+            if (justPassedDoor)
+            {
+                // Respondo que sí pasé por puerta
+                SendACLMessage(
+                    receiver: message.Sender,
+                    performative: "CONFIRM_DOOR",
+                    content: "Si que pasé brother",
+                    protocol: "door_check"
+                );
+            }
+            // si justPassedDoor==false, no respondo nada
+            return;
+        }
+
+        if (message.Performative == "CONFIRM_DOOR" && message.Protocol == "door_check")
+        {
+            // Un compañero confirmó que pasó por puerta
+            var guard = message.Sender.GetComponent<MultiAgentSystem>();
+            if (guard != null && guard.IsGuard)
+            {
+                ((GuardScript)this).doorConfirmations++;
+            }
+            return;
+        }    
     }
 
 }

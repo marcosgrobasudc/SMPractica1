@@ -1,180 +1,3 @@
-// // // using UnityEngine;
-// // // using System.Collections;
-
-// // // public class DoorController : MonoBehaviour
-// // // {
-// // //     public Animator animator;
-// // //     public float doorCloseDelay = 3f; // Segundos antes de cerrar la puerta
-// // //     private bool isOpen = false;
-// // //     private Coroutine closeCoroutine;
-
-// // //     private void OnTriggerEnter(Collider other)
-// // //     {
-// // //         if (other.CompareTag("Player") || other.CompareTag("Guard"))
-// // //         {
-// // //             OpenDoor();
-// // //         }
-// // //     }
-
-// // //     private void OnTriggerExit(Collider other)
-// // //     {
-// // //         if ((other.CompareTag("Player") || other.CompareTag("Guard")) && isOpen)
-// // //         {
-// // //             if (closeCoroutine != null)
-// // //                 StopCoroutine(closeCoroutine);
-// // //             closeCoroutine = StartCoroutine(CloseDoorAfterDelay());
-// // //         }
-// // //     }
-
-// // //     void OpenDoor()
-// // //     {
-// // //         isOpen = true;
-// // //         animator.SetBool("isOpen", true);
-// // //     }
-
-// // //     IEnumerator CloseDoorAfterDelay()
-// // //     {
-// // //         yield return new WaitForSeconds(doorCloseDelay);
-// // //         isOpen = false;
-// // //         animator.SetBool("isOpen", false);
-// // //     }
-// // // }
-
-
-// // using UnityEngine;
-// // using System.Collections;
-
-// // public class DoorController : MonoBehaviour
-// // {
-// //     public Animator animator;                  // Controla la animación de la puerta
-// //     public Collider physicalCollider;          // Collider físico (ej. MeshCollider que bloquea el paso)
-// //     public float doorCloseDelay = 3f;          // Segundos antes de cerrar la puerta
-
-// //     private bool isOpen = false;
-// //     private Coroutine closeCoroutine;
-
-// //     private void OnTriggerEnter(Collider other)
-// //     {
-// //         if (other.CompareTag("Player") || other.CompareTag("Guard"))
-// //         {
-// //             OpenDoor();
-// //         }
-// //     }
-
-// //     private void OnTriggerExit(Collider other)
-// //     {
-// //         if ((other.CompareTag("Player") || other.CompareTag("Guard")) && isOpen)
-// //         {
-// //             if (closeCoroutine != null)
-// //                 StopCoroutine(closeCoroutine);
-
-// //             closeCoroutine = StartCoroutine(CloseDoorAfterDelay());
-// //         }
-// //     }
-
-// //     void OpenDoor()
-// //     {
-// //         if (isOpen) return;
-
-// //         isOpen = true;
-// //         animator.SetBool("isOpen", true);
-
-// //         if (physicalCollider != null)
-// //         {
-// //             physicalCollider.enabled = false; // Desactiva collider físico
-// //         }
-// //         else
-// //         {
-// //             Debug.LogWarning("¡El physicalCollider no está asignado!");
-// //         }
-// //     }
-
-// //     IEnumerator CloseDoorAfterDelay()
-// //     {
-// //         yield return new WaitForSeconds(doorCloseDelay);
-
-// //         isOpen = false;
-// //         animator.SetBool("isOpen", false);
-
-// //         if (physicalCollider != null)
-// //         {
-// //             physicalCollider.enabled = true; // Reactiva collider físico
-// //         }
-// //         else
-// //         {
-// //             Debug.LogWarning("¡El physicalCollider no está asignado!");
-// //         }
-// //     }
-// // }
-
-
-// using UnityEngine;
-// using System.Collections;
-
-// public class DoorController : MonoBehaviour
-// {
-//     public Animator animator;                  // Controla la animación de la puerta
-//     public Collider physicalCollider;          // Collider físico (ej. MeshCollider que bloquea el paso)
-//     public float doorCloseDelay = 3f;          // Segundos antes de cerrar la puerta
-
-//     private bool isOpen = false;
-//     private Coroutine closeCoroutine;
-
-//     private void OnTriggerEnter(Collider other)
-//     {
-//         // Asegúrate de que tanto el jugador como los guardias tienen la etiqueta correcta.
-//         if (other.CompareTag("Player") || other.CompareTag("Guard"))
-//         {
-//             OpenDoor();
-//         }
-//     }
-
-//     private void OnTriggerExit(Collider other)
-//     {
-//         // Cuando el jugador o el guardia sale del área, cierra la puerta después de un retraso
-//         if ((other.CompareTag("Player") || other.CompareTag("Guard")) && isOpen)
-//         {
-//             if (closeCoroutine != null)
-//                 StopCoroutine(closeCoroutine);
-
-//             closeCoroutine = StartCoroutine(CloseDoorAfterDelay());
-//         }
-//     }
-
-//     void OpenDoor()
-//     {
-//         if (isOpen) return;
-
-//         isOpen = true;
-//         animator.SetBool("isOpen", true);
-
-//         if (physicalCollider != null)
-//         {
-//             physicalCollider.enabled = false; // Desactiva collider físico
-//         }
-//         else
-//         {
-//             Debug.LogWarning("¡El physicalCollider no está asignado!");
-//         }
-//     }
-
-//     IEnumerator CloseDoorAfterDelay()
-//     {
-//         yield return new WaitForSeconds(doorCloseDelay);
-
-//         isOpen = false;
-//         animator.SetBool("isOpen", false);
-
-//         if (physicalCollider != null)
-//         {
-//             physicalCollider.enabled = true; // Reactiva collider físico
-//         }
-//         else
-//         {
-//             Debug.LogWarning("¡El physicalCollider no está asignado!");
-//         }
-//     }
-// }
 using UnityEngine;
 using System.Collections;
 
@@ -184,6 +7,18 @@ public class DoorController : MonoBehaviour
     public float doorCloseDelay = 3f;          // Segundos antes de cerrar la puerta
     private bool isOpen = false;
     private Coroutine closeCoroutine;
+
+    private NoisyDoor noisyDoor;                // Referencia al script de la puerta ruidosa
+
+    void Awake()
+    {
+        // Buscamos el componente NoisyDoor en el mismo GameObject o en uno de sus padres
+        noisyDoor = GetComponent<NoisyDoor>();
+        if (noisyDoor == null)
+        {
+            Debug.LogError("No se encontró el componente NoisyDoor en la puerta.");
+        }
+    }
 
     // Cuando el jugador o guardia entra en el Trigger de la puerta
     private void OnTriggerEnter(Collider other)
@@ -216,6 +51,9 @@ public class DoorController : MonoBehaviour
 
         isOpen = true;
         animator.SetBool("isOpen", true);  // Asumimos que tienes un parámetro "isOpen" en el Animator
+
+        Debug.Log("Opening door and emitting sound.");
+        noisyDoor.OpenDoor();
     }
 
     // Corutina para cerrar la puerta después de un retraso

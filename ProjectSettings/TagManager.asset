@@ -9,6 +9,7 @@ TagManager:
   - Treasure
   - Exit
   - Obstruction
+  - Door
   layers:
   - Default
   - TransparentFX
