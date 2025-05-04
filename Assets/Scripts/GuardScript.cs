@@ -419,11 +419,11 @@ public class GuardScript : MultiAgentSystem
         Debug.Log($"{name} ha llegado a la última posición conocida del jugador.");
         hasCheckedLastPosition = true; // Marcar como verificado
 
-        if(!auctionStarted && currentCoordinator == null)
-        {
-            bool hasTreasure = player.GetComponent<Movement>()?.hasTreasure ?? false;
-            TryBecomeCoordinator(hasTreasure);
-        }
+        // if(!auctionStarted && currentCoordinator == null)
+        // {
+        //     bool hasTreasure = player.GetComponent<Movement>()?.hasTreasure ?? false;
+        //     TryBecomeCoordinator(hasTreasure);
+        // }
 
         searchingLastPosition = false;
         
